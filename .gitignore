@@ -1,0 +1,10 @@
+# Database credentials (never commit real credentials)
+config/db.local.php
+
+# Uploaded user images
+assets/img/*
+!assets/img/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
