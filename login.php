@@ -9,7 +9,7 @@ if (!empty($_SESSION['user_id'])) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HarmonyMatchhhh — Login / Register</title>
+  <title>HarmonyMatch — Login / Register</title>
   <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
@@ -60,7 +60,7 @@ if (!empty($_SESSION['user_id'])) {
           <span class="logo-text" style="font-size:26px;">HarmonyMatch</span>
         </div>
         <p class="auth-brand-title" style="font-size:20px;font-weight:600;margin-top:8px;">Find Love in the Same Frequency.</p>
-        <p class="auth-brand-sub">Where? playlists become introductions.</p>
+        <p class="auth-brand-sub">Where playlists become introductions.</p>
 
         <div style="text-align:left;margin-top:8px;">
           <div class="feature-item">
