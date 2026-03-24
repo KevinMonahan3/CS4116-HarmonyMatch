@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/UserController.php';
+require_once __DIR__ . '/../dal/MusicDAL.php';
 
 header('Content-Type: application/json');
 AuthController::requireLogin();
@@ -11,6 +12,10 @@ $action = $_REQUEST['action'] ?? '';
 $ctrl   = new UserController();
 
 switch ($action) {
+    case 'genres':
+        echo json_encode((new MusicDAL())->getAllGenres());
+        break;
+
     case 'profile':
         $targetId = (int)($_GET['id'] ?? $userId);
         echo json_encode($ctrl->getProfile($targetId));
@@ -21,9 +26,25 @@ switch ($action) {
         break;
 
     case 'onboarding_music':
-        $genreIds = array_map('intval', $_POST['genres'] ?? []);
-        $artists  = $_POST['artists'] ?? [];
-        $songs    = $_POST['songs']   ?? [];
+        $genresInput = $_POST['genres'] ?? [];
+        if (!is_array($genresInput)) {
+            $genresInput = $genresInput === '' ? [] : explode(',', (string)$genresInput);
+        }
+
+        $artistsInput = $_POST['artists'] ?? [];
+        if (!is_array($artistsInput)) {
+            $artistsInput = $artistsInput === '' ? [] : explode(',', (string)$artistsInput);
+        }
+
+        $songsInput = $_POST['songs'] ?? [];
+        if (is_string($songsInput)) {
+            $decodedSongs = json_decode($songsInput, true);
+            $songsInput = is_array($decodedSongs) ? $decodedSongs : [];
+        }
+
+        $genreIds = array_map('intval', $genresInput);
+        $artists  = array_values(array_filter(array_map('trim', $artistsInput), fn($artist) => $artist !== ''));
+        $songs    = is_array($songsInput) ? $songsInput : [];
         echo json_encode($ctrl->saveOnboardingStep2($userId, $genreIds, $artists, $songs));
         break;
 

@@ -1,12 +1,11 @@
 # HarmonyMatch
 
-A music-based dating platform — *Find love in the same frequency.*
+A music-based dating platform. This repo is now wired to work against the normalized Oracle Cloud MySQL schema described in the project database handoff.
 
 ## Tech Stack
 - **Frontend**: HTML5, CSS3, Vanilla JS
 - **Backend**: PHP 8.x (no framework)
-- **Database**: MySQL 8 / MariaDB
-testing
+- **Database**: MySQL 8 / Oracle Cloud MySQL
 ## Project Structure
 
 ```
@@ -16,7 +15,8 @@ CS4116-HarmonyMatch/
 │   ├── js/                     # Per-page JS modules
 │   └── img/                    # User uploaded photos (add to .gitignore)
 ├── config/
-│   └── database.php            # PDO connection singleton
+│   ├── database.php            # PDO connection singleton
+│   └── db.local.example.php    # Copy to db.local.php for local secrets
 ├── dal/                        # Data Access Layer (SQL only, no business logic)
 │   ├── UserDAL.php
 │   ├── MusicDAL.php
@@ -38,8 +38,6 @@ CS4116-HarmonyMatch/
 │   ├── session.php
 │   ├── header.php
 │   └── footer.php
-├── database/
-│   └── schema.sql              # Full MySQL schema + seed data
 ├── index.php                   # Entry point (redirect)
 ├── login.php
 ├── onboarding.php
@@ -55,13 +53,14 @@ CS4116-HarmonyMatch/
 
 1. Install XAMPP / WAMP / Laragon
 2. Place project in `htdocs/harmonymatch/`
-3. Import `database/schema.sql` into phpMyAdmin
-4. Update `config/database.php` with your DB credentials
+3. Copy `config/db.local.example.php` to `config/db.local.php`
+4. Update `config/db.local.php` or set `DB_*` environment variables
 5. Visit `http://localhost/harmonymatch/`
+
+`config/db.local.php` is gitignored, so real credentials stay local.
 
 ## Deployment (Free Hosting)
 
 - Upload files via FTP
-- Create MySQL DB in hosting control panel
-- Import `schema.sql`
-- Update `config/database.php` with hosting credentials
+- Provide the `DB_*` environment variables in your hosting panel, or deploy a server-side `config/db.local.php`
+- Make sure the target database uses the normalized schema expected by the DAL

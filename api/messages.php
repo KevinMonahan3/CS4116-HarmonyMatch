@@ -27,6 +27,11 @@ switch ($action) {
         $content  = trim($_POST['content'] ?? '');
         if (!$toUserId || $content === '') { http_response_code(400); echo json_encode(['error' => 'Missing fields']); break; }
         $id = $dal->sendMessage($userId, $toUserId, htmlspecialchars($content));
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Unable to send message until users are matched']);
+            break;
+        }
         echo json_encode(['success' => true, 'message_id' => $id]);
         break;
 

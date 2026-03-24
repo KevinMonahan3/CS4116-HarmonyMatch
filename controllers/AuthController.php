@@ -21,6 +21,10 @@ class AuthController {
 
         $hash = password_hash($password, PASSWORD_BCRYPT);
         $id = $this->userDAL->createUser($email, $hash, $name, $dob, $gender);
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Unable to create account'];
+        }
+
         return ['success' => true, 'user_id' => $id];
     }
 
@@ -29,16 +33,15 @@ class AuthController {
         if (!$user || !password_verify($password, $user['password_hash'])) {
             return ['success' => false, 'error' => 'Invalid email or password'];
         }
-        if (!$user['is_active']) {
+        if (empty($user['is_active'])) {
             return ['success' => false, 'error' => 'Account suspended'];
         }
 
-        // Start session
         $_SESSION['user_id']   = $user['id'];
-        $_SESSION['user_name'] = $user['name'];
-        $_SESSION['is_admin']  = (bool)$user['is_admin'];
+        $_SESSION['user_name'] = $user['name'] ?? $user['email'];
+        $_SESSION['is_admin']  = !empty($user['is_admin']);
 
-        $redirect = $user['onboarding_complete'] ? 'dashboard.php' : 'onboarding.php';
+        $redirect = !empty($user['onboarding_complete']) ? 'dashboard.php' : 'onboarding.php';
         return ['success' => true, 'redirect' => $redirect];
     }
 
