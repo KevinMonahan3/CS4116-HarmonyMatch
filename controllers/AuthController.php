@@ -22,7 +22,7 @@ class AuthController {
         $hash = password_hash($password, PASSWORD_BCRYPT);
         $id = $this->userDAL->createUser($email, $hash, $name, $dob, $gender);
         if ($id <= 0) {
-            return ['success' => false, 'error' => 'Unable to create account'];
+            return ['success' => false, 'error' => 'Unable to create account - check server error log'];
         }
 
         $_SESSION['user_id']   = $id;

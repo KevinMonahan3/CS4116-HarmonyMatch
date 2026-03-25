@@ -152,6 +152,7 @@ class UserDAL {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
+            error_log('createUser failed: ' . $e->getMessage());
             return 0;
         }
     }
