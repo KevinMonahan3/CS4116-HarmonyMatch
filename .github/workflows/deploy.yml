@@ -13,6 +13,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create DB config from secrets
+        run: |
+          cat > config/db.local.php << 'EOF'
+          <?php
+          return [
+              'DB_ENABLED' => true,
+              'DB_DRIVER'  => 'mysql',
+              'DB_HOST'    => '${{ secrets.DB_HOST }}',
+              'DB_PORT'    => '3306',
+              'DB_NAME'    => '${{ secrets.DB_NAME }}',
+              'DB_USER'    => '${{ secrets.DB_USER }}',
+              'DB_PASS'    => '${{ secrets.DB_PASS }}',
+              'DB_CHARSET' => 'utf8mb4',
+          ];
+          EOF
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -24,4 +40,3 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
-            config/database.php

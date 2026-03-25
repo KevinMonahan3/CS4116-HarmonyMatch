@@ -25,6 +25,10 @@ class AuthController {
             return ['success' => false, 'error' => 'Unable to create account'];
         }
 
+        $_SESSION['user_id']   = $id;
+        $_SESSION['user_name'] = $name;
+        $_SESSION['is_admin']  = false;
+
         return ['success' => true, 'user_id' => $id];
     }
 
