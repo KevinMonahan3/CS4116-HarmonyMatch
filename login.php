@@ -13,6 +13,14 @@ if (!empty($_SESSION['user_id'])) {
   <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
+    .deploy-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; margin-bottom: 18px; border-radius: 999px;
+      background: rgba(6,182,212,0.14); border: 1px solid rgba(6,182,212,0.28);
+      color: #7dd3fc; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      box-shadow: 0 0 24px rgba(6,182,212,0.14);
+    }
+    .deploy-badge i { font-size: 12px; }
     .feature-item { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; }
     .feature-icon {
       width: 40px; height: 40px; border-radius: 10px;
@@ -24,9 +32,12 @@ if (!empty($_SESSION['user_id'])) {
     .feature-desc  { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
     .heart-hero {
       width: 160px; height: 160px; margin-bottom: 40px;
-      background: var(--grad-main); border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.24), transparent 35%),
+        linear-gradient(135deg, #06b6d4 0%, #7c3aed 45%, #d946ef 100%);
+      border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 72px; color: #fff; box-shadow: 0 0 60px rgba(124,58,237,0.5), 0 0 120px rgba(217,70,239,0.2);
+      font-size: 72px; color: #fff; box-shadow: 0 0 60px rgba(6,182,212,0.35), 0 0 120px rgba(217,70,239,0.2);
       animation: float 4s ease-in-out infinite;
     }
     @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
@@ -52,6 +63,10 @@ if (!empty($_SESSION['user_id'])) {
     <!-- Left brand panel -->
     <div class="auth-left">
       <div style="position:relative;z-index:1;text-align:center;width:100%;">
+        <div class="deploy-badge">
+          <i class="fas fa-cloud"></i>
+          Oracle VM Build Live
+        </div>
         <div class="heart-hero" style="margin:0 auto 40px;">
           <i class="fas fa-heart"></i>
         </div>
