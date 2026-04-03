@@ -683,11 +683,11 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Message bubbles */
 .msg-bubble {
-  max-width: 68%;
   padding: 10px 14px;
   border-radius: 14px;
   font-size: 14px;
   line-height: 1.5;
+  word-break: break-word;
 }
 .msg-bubble.sent {
   align-self: flex-end;

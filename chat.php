@@ -52,7 +52,7 @@ include __DIR__ . '/includes/header.php';
       <div id="inboxList">
 
         <!-- Static placeholder inbox items — remove once API is wired -->
-        <div class="inbox-item active" onclick="loadConversation(99)">
+        <div class="inbox-item" onclick="loadConversation(99, this)">
           <div class="inbox-avatar">A</div>
           <div class="inbox-info">
             <div class="inbox-name">Alex M.</div>
@@ -60,7 +60,7 @@ include __DIR__ . '/includes/header.php';
           </div>
         </div>
 
-        <div class="inbox-item" onclick="loadConversation(98)">
+        <div class="inbox-item" onclick="loadConversation(98, this)">
           <div class="inbox-avatar">S</div>
           <div class="inbox-info">
             <div class="inbox-name">Sam K.</div>
@@ -68,7 +68,7 @@ include __DIR__ . '/includes/header.php';
           </div>
         </div>
 
-        <div class="inbox-item" onclick="loadConversation(97)">
+        <div class="inbox-item" onclick="loadConversation(97, this)">
           <div class="inbox-avatar">J</div>
           <div class="inbox-info">
             <div class="inbox-name">Jordan L.</div>
@@ -113,21 +113,7 @@ include __DIR__ . '/includes/header.php';
         chat.js renders each as a .msg-bubble.sent or .msg-bubble.received element.
         ─────────────────────────────────────────────────────────
       -->
-      <div class="chat-messages" id="chatMessages">
-        <!-- Static placeholder messages — remove once API is wired -->
-        <div>
-          <div class="msg-bubble received">Hey! I saw you're into Indie too 🎸</div>
-          <div class="msg-time">2:14 pm</div>
-        </div>
-        <div style="align-self:flex-end;text-align:right;">
-          <div class="msg-bubble sent">Yes! Especially Arctic Monkeys 🎵</div>
-          <div class="msg-time">2:15 pm</div>
-        </div>
-        <div>
-          <div class="msg-bubble received">I love that song too! What else are you listening to?</div>
-          <div class="msg-time">2:16 pm</div>
-        </div>
-      </div>
+      <div class="chat-messages" id="chatMessages"></div>
 
       <!--
         DB CONNECTION POINT — Send Message
@@ -157,32 +143,72 @@ include __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-  const CURRENT_USER_ID = <?= (int)$_SESSION['user_id'] ?>;
+  const CURRENT_USER_ID = <?= (int)($_SESSION['user_id'] ?? 0) ?>;
   const OPEN_WITH       = <?= $withUserId ?: 'null' ?>;
 
-  /* Placeholder — wire into chat.js once API is ready */
-  function loadConversation(userId) {
-    document.querySelectorAll('.inbox-item').forEach(el => el.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-    document.getElementById('chatPanel').style.display = 'flex';
+  const FAKE_USERS = {
+    99: { name: 'Alex M.',   initial: 'A' },
+    98: { name: 'Sam K.',    initial: 'S' },
+    97: { name: 'Jordan L.', initial: 'J' },
+  };
+
+  const FAKE_MESSAGES = {
+    99: [
+      { self: false, text: "Hey! I saw you're into Indie too 🎸",           time: '2:14 pm' },
+      { self: true,  text: 'Yes! Especially Arctic Monkeys 🎵',             time: '2:15 pm' },
+      { self: false, text: 'I love that song too! What else are you into?', time: '2:16 pm' },
+    ],
+    98: [
+      { self: false, text: 'Have you heard the new Hozier album?',              time: '1:30 pm' },
+      { self: true,  text: 'Not yet! Is it good?',                             time: '1:38 pm' },
+      { self: false, text: "It's incredible, you need to listen immediately",   time: '1:40 pm' },
+      { self: true,  text: 'Adding it to my queue now 🎧',                     time: '1:41 pm' },
+      { self: false, text: 'Have you heard the new album?',                     time: '1:42 pm' },
+    ],
+    97: [
+      { self: false, text: 'What are you listening to rn?',               time: 'Yesterday' },
+      { self: true,  text: 'Been on a massive Fleetwood Mac kick lately', time: 'Yesterday' },
+      { self: false, text: 'Classic taste 🙌 Dreams or Go Your Own Way?', time: 'Yesterday' },
+    ],
+  };
+
+  function loadConversation(userId, el) {
+    console.log('loadConversation called', userId);
+    document.querySelectorAll('.inbox-item').forEach(item => item.classList.remove('active'));
+    if (el) el.classList.add('active');
+
+    const user = FAKE_USERS[userId];
     document.getElementById('chatHeader').innerHTML =
-      '<i class="fas fa-user-circle" style="color:var(--accent-purple-light);margin-right:8px;"></i> User #' + userId;
-    // TODO: chat.js will call loadConversation(userId) to fetch & render the thread
+      `<div class="inbox-avatar" style="width:36px;height:36px;font-size:.9rem;margin-right:10px;">${user.initial}</div><strong>${user.name}</strong>`;
+
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = (FAKE_MESSAGES[userId] ?? []).map(m => `
+      <div style="display:flex;flex-direction:column;align-self:${m.self ? 'flex-end' : 'flex-start'};max-width:70%;">
+        <div class="msg-bubble ${m.self ? 'sent' : 'received'}">${m.text}</div>
+        <div class="msg-time" style="text-align:${m.self ? 'right' : 'left'}">${m.time}</div>
+      </div>
+    `).join('');
+    container.scrollTop = container.scrollHeight;
+
+    document.getElementById('chatPanel').style.display = '';
   }
 
   document.getElementById('sendForm').addEventListener('submit', e => {
     e.preventDefault();
-    const msg = document.getElementById('msgInput').value.trim();
+    const input = document.getElementById('msgInput');
+    const msg = input.value.trim();
     if (!msg) return;
-    // TODO: wire to /api/messages.php?action=send in chat.js
-    const bubble = document.createElement('div');
-    bubble.style.alignSelf = 'flex-end';
-    bubble.style.textAlign = 'right';
-    bubble.innerHTML = `<div class="msg-bubble sent">${msg}</div>`;
-    document.getElementById('chatMessages').appendChild(bubble);
-    document.getElementById('msgInput').value = '';
-    document.getElementById('chatMessages').scrollTop = 9999;
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.flexDirection = 'column';
+    div.style.alignSelf = 'flex-end';
+    div.style.maxWidth = '70%';
+    div.innerHTML = `<div class="msg-bubble sent">${msg}</div><div class="msg-time" style="text-align:right">Just now</div>`;
+    container.appendChild(div);
+    input.value = '';
+    container.scrollTop = container.scrollHeight;
   });
 </script>
 
-<?php $extraScript = 'chat.js'; include __DIR__ . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
