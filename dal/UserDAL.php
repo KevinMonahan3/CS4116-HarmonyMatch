@@ -127,19 +127,15 @@ class UserDAL {
         $this->db->beginTransaction();
         try {
             $stmt = $this->db->prepare(
-                "INSERT INTO users (email, password_hash, role, status, created_at, updated_at)
-                 VALUES (?, ?, 'user', 'active', NOW(), NOW())"
+                'INSERT INTO users (email, password_hash, role, status, created_at, updated_at)
+                 VALUES (?, ?, "user", "active", NOW(), NOW())'
             );
             $stmt->execute([$email, $passwordHash]);
-            //$userId = (int)$this->db->lastInsertId();
-            // Oracle doesn't support lastInsertId() — fetch the new ID directly
-            $stmt = $this->db->prepare('SELECT MAX(user_id) FROM users WHERE email = ?');
-            $stmt->execute([$email]);
-            $userId = (int)$stmt->fetchColumn();
+            $userId = (int)$this->db->lastInsertId();
 
             $stmt = $this->db->prepare(
-                "INSERT INTO profiles (user_id, display_name, bio, birth_year, visibility, updated_at)
-                 VALUES (?, ?, NULL, ?, 'public', CURRENT_TIMESTAMP)"
+                'INSERT INTO profiles (user_id, display_name, bio, birth_year, visibility, updated_at)
+                 VALUES (?, ?, NULL, ?, "public", NOW())'
             );
             $stmt->execute([$userId, $name, $birthYear]);
 
