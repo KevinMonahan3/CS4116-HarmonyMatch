@@ -149,8 +149,7 @@ async function refreshMatches() {
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: 'action=reset_skips'
         });
-        document.getElementById('matchGrid').innerHTML = '<p style="color:var(--text-secondary);">Loading matches...</p>';
-        await loadMatches();
+        window.location.href = '/dashboard.php';
     } finally {
         btn.disabled = false;
         icon.style.animation = '';
