@@ -21,6 +21,18 @@ class UserController {
         return $user;
     }
 
+    public function searchLocations(string $query): array {
+        $query = trim($query);
+        if ($query === '') {
+            return ['success' => false, 'error' => 'Missing query'];
+        }
+
+        return [
+            'success' => true,
+            'results' => $this->userDAL->searchLocations($query),
+        ];
+    }
+
     public function updateProfile(int $userId, array $data): array {
         $allowed = ['name', 'bio', 'location', 'profile_photo', 'dob', 'gender'];
         $filtered = array_intersect_key($data, array_flip($allowed));
