@@ -26,10 +26,15 @@ include __DIR__ . '/includes/header.php';
   <!-- Main content -->
   <main class="hm-main">
 
-    <div class="section-header">
-      <h2 class="section-title">Discover Matches</h2>
-      <p class="section-subtitle">People who share your musical soul</p>
+    <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+    <div>
+        <h2 class="section-title">Discover Matches</h2>
+        <p class="section-subtitle">People who share your musical soul</p>
     </div>
+    <button class="btn-outline" id="refreshMatchesBtn" onclick="refreshMatches()" style="display:flex;align-items:center;gap:8px;white-space:nowrap;align-self:center;">
+        <i class="fas fa-redo" id="refreshIcon"></i> Refresh Matches
+    </button>
+</div>
 
     <!--
       DB CONNECTION POINT — Match Grid
@@ -130,5 +135,27 @@ include __DIR__ . '/includes/header.php';
 
   </main>
 </div>
+
+<script>
+async function refreshMatches() {
+    const btn  = document.getElementById('refreshMatchesBtn');
+    const icon = document.getElementById('refreshIcon');
+    btn.disabled = true;
+    icon.style.animation = 'spin 0.8s linear infinite';
+
+    try {
+        if (typeof loadMatches === 'function') {
+            document.getElementById('matchGrid').innerHTML = '<p style="color:var(--text-secondary);">Loading matches...</p>';
+            await loadMatches();
+        } else {
+            location.reload();
+        }
+    } finally {
+        btn.disabled = false;
+        icon.style.animation = '';
+    }
+}
+</script>
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
 <?php $extraScript = 'dashboard.js'; include __DIR__ . '/includes/footer.php'; ?>
