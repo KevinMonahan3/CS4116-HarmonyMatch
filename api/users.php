@@ -39,7 +39,11 @@ switch ($action) {
         $songsInput = $_POST['songs'] ?? [];
         if (is_string($songsInput)) {
             $decodedSongs = json_decode($songsInput, true);
-            $songsInput = is_array($decodedSongs) ? $decodedSongs : [];
+            if (is_array($decodedSongs)) {
+                $songsInput = $decodedSongs;
+            } else {
+                $songsInput = $songsInput === '' ? [] : explode(',', $songsInput);
+            }
         }
 
         $genreIds = array_map('intval', $genresInput);

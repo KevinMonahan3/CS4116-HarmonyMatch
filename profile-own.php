@@ -20,8 +20,8 @@ $userId = (int)$_SESSION['user_id'];
   ─────────────────────────────────────────────────────────
 */
 
-// --- Placeholder data (remove once controllers are wired) ---
-$profile = [
+$ctrl    = new UserController();
+$profile = $ctrl->getProfile($userId) ?: [
   'name'          => 'Your Name',
   'profile_photo' => null,
   'location'      => '',
@@ -29,11 +29,6 @@ $profile = [
   'genres'        => [],
   'artists'       => [],
 ];
-
-/* Uncomment when controller is ready:
-$ctrl    = new UserController();
-$profile = $ctrl->getProfile($userId);
-*/
 
 $pageTitle = 'My Profile';
 include __DIR__ . '/includes/header.php';
@@ -195,22 +190,17 @@ include __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-  /* Profile form save — wire properly in profile.js */
   document.getElementById('profileForm').addEventListener('submit', async e => {
     e.preventDefault();
     const msgEl = document.getElementById('profileMsg');
     const data  = new URLSearchParams(new FormData(e.target));
     data.append('action', 'update_profile');
 
-    /*
-      DB CONNECTION POINT
-      fetch('/api/users.php', { method:'POST', body: data })
-        → UserController::updateProfile()
-    */
-    // Placeholder feedback until API is wired:
+    const res = await fetch('/api/users.php', { method: 'POST', body: data });
+    const json = await res.json();
     msgEl.style.display = 'block';
-    msgEl.style.color   = '#10b981';
-    msgEl.textContent   = 'Profile saved! (API not yet connected)';
+    msgEl.style.color   = json.success ? '#10b981' : '#ef4444';
+    msgEl.textContent   = json.success ? 'Profile saved.' : (json.error || 'Unable to save profile.');
     setTimeout(() => msgEl.style.display = 'none', 3000);
   });
 
@@ -224,4 +214,4 @@ include __DIR__ . '/includes/header.php';
   }
 </script>
 
-<?php $extraScript = 'profile.js'; include __DIR__ . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
