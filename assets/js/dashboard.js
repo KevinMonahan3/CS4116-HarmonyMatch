@@ -1,8 +1,10 @@
 // dashboard.js — load and render match cards
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function loadMatches() {
     const grid = document.getElementById('matchGrid');
     if (!grid) return;
+
+    grid.innerHTML = '<p style="color:var(--text-secondary);">Loading matches...</p>';
 
     const matches = await apiGet('/api/matches.php?action=dashboard');
     if (!Array.isArray(matches) || matches.length === 0) {
@@ -35,7 +37,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         </div>
     `).join('');
-});
+}
+
+document.addEventListener('DOMContentLoaded', loadMatches);
 
 async function doSwipe(toUserId, action, btn) {
     btn.disabled = true;
@@ -43,6 +47,5 @@ async function doSwipe(toUserId, action, btn) {
     if (data.is_match) {
         alert("It's a match! 🎵 Start the conversation.");
     }
-    // Remove the card
     btn.closest('.match-card').remove();
 }
