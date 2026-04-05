@@ -1,4 +1,26 @@
 <?php
+// Line on login to show most recent commit
+$latestCommit = null;
+$ghRepo = 'KevinMonahan3/CS4116-HarmonyMatch';
+$ghApi  = "https://api.github.com/repos/{$ghRepo}/commits?per_page=1";
+$ctx    = stream_context_create(['http' => [
+    'header' => "User-Agent: HarmonyMatch\r\n",
+    'timeout' => 3,
+]]);
+$raw = @file_get_contents($ghApi, false, $ctx);
+if ($raw) {
+    $commits = json_decode($raw, true);
+    if (!empty($commits[0])) {
+        $c = $commits[0];
+        $latestCommit = [
+            'sha'     => substr($c['sha'], 0, 7),
+            'message' => strtok($c['commit']['message'], "\n"), // first line only
+            'author'  => $c['commit']['author']['name'],
+            'date'    => date('d M Y', strtotime($c['commit']['author']['date'])),
+        ];
+    }
+}
+
 require_once __DIR__ . '/includes/session.php';
 if (!empty($_SESSION['user_id'])) {
     header('Location: ' . $baseUrl . '/dashboard.php'); exit;
@@ -103,13 +125,20 @@ if (!empty($_SESSION['user_id'])) {
               <div class="feature-desc">Auto-generated playlist for every match.</div>
             </div>
           </div>
+          <!-- Line at bottom showing last commit made -->
           <div style="margin-top:32px;padding:12px 16px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);text-align:left;">
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">
-              <i class="fas fa-server" style="margin-right:5px;"></i>Deployment Note
-            </div>
-            <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
-              Login and registration are handled locally by the app and database, without extra third-party calls on page load.
-            </div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">
+                <i class="fas fa-code-branch" style="margin-right:5px;"></i>Latest Commit
+              </div>
+              <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:4px;">
+                  <?= htmlspecialchars($latestCommit['message']) ?>
+              </div>
+              <div style="font-size:12px;color:var(--text-secondary);">
+                  <code style="background:rgba(124,58,237,0.2);padding:1px 6px;border-radius:4px;font-size:11px;">
+                      <?= $latestCommit['sha'] ?>
+                  </code>
+                  &nbsp;<?= htmlspecialchars($latestCommit['author']) ?> · <?= $latestCommit['date'] ?>
+              </div>
           </div>
         </div>
       </div>
