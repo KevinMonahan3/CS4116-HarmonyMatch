@@ -120,8 +120,12 @@ if (!empty($_SESSION['user_id'])) {
             <div class="feature-icon" style="background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.25);color:var(--accent-cyan);">
               <i class="fas fa-list"></i>
             </div>
-
-            <!-- Line at bottom showing last commit made -->
+            <div>
+              <div class="feature-title">Shared Playlist</div>
+              <div class="feature-desc">Auto-generated playlist for every match.</div>
+            </div>
+          </div>
+          <!-- Line at bottom showing last commit made -->
             <div style="margin-top:32px;padding:12px 16px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);text-align:left;">
                 <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">
                   <i class="fas fa-code-branch" style="margin-right:5px;"></i>Latest Commit
@@ -136,12 +140,6 @@ if (!empty($_SESSION['user_id'])) {
                     &nbsp;<?= htmlspecialchars($latestCommit['author']) ?> · <?= $latestCommit['date'] ?>
                 </div>
             </div>
-
-            <div>
-              <div class="feature-title">Shared Playlist</div>
-              <div class="feature-desc">Auto-generated playlist for every match.</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
