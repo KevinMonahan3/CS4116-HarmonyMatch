@@ -95,6 +95,19 @@ class MusicDAL {
         $stmt->execute([$userId, (int)$artistId]);
     }
 
+    public function replaceUserArtists(int $userId, array $artistNames): void {
+        if (!$this->db) {
+            return;
+        }
+
+        $stmt = $this->db->prepare('DELETE FROM user_artists WHERE user_id = ?');
+        $stmt->execute([$userId]);
+
+        foreach ($artistNames as $artistName) {
+            $this->addUserArtist($userId, (string)$artistName);
+        }
+    }
+
     public function getUserSongs(int $userId): array {
         if (!$this->db) {
             return [];
@@ -149,5 +162,28 @@ class MusicDAL {
              ON DUPLICATE KEY UPDATE song_id = VALUES(song_id)'
         );
         $stmt->execute([$userId, (int)$songId]);
+    }
+
+    public function replaceUserSongs(int $userId, array $songs): void {
+        if (!$this->db) {
+            return;
+        }
+
+        $stmt = $this->db->prepare('DELETE FROM user_songs WHERE user_id = ?');
+        $stmt->execute([$userId]);
+
+        foreach ($songs as $song) {
+            if (!is_array($song)) {
+                continue;
+            }
+
+            $title = trim((string)($song['title'] ?? ''));
+            $artist = trim((string)($song['artist'] ?? ''));
+            if ($title === '' || $artist === '') {
+                continue;
+            }
+
+            $this->addUserSong($userId, $title, $artist);
+        }
     }
 }

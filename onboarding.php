@@ -6,7 +6,17 @@
  */
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/controllers/AuthController.php';
+require_once __DIR__ . '/controllers/UserController.php';
+require_once __DIR__ . '/dal/MusicDAL.php';
 AuthController::requireLogin();
+
+$userId = (int)($_SESSION['user_id'] ?? 0);
+$profile = (new UserController())->getProfile($userId) ?: [];
+$genres = (new MusicDAL())->getAllGenres();
+$selectedGenreIds = array_map(
+    static fn(array $genre): int => (int)($genre['id'] ?? 0),
+    $profile['genres'] ?? []
+);
 
 $pageTitle = 'Set Up Your Profile';
 include __DIR__ . '/includes/header.php';
@@ -38,12 +48,12 @@ include __DIR__ . '/includes/header.php';
 
       <div class="form-group">
         <label class="form-label">Display Name</label>
-        <input type="text" name="name" class="form-input" placeholder="e.g. Jamie Cole" required>
+        <input type="text" name="name" class="form-input" placeholder="e.g. Jamie Cole" value="<?= htmlspecialchars((string)($profile['name'] ?? '')) ?>" required>
       </div>
 
       <div class="form-group">
         <label class="form-label">Date of Birth</label>
-        <input type="date" name="dob" class="form-input" required>
+        <input type="date" name="dob" class="form-input" value="<?= !empty($profile['birth_year']) ? htmlspecialchars((string)$profile['birth_year']) . '-01-01' : '' ?>" required>
       </div>
 
       <div class="form-group">
@@ -51,14 +61,14 @@ include __DIR__ . '/includes/header.php';
         <div style="position:relative;">
           <i class="fas fa-map-marker-alt" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
           <input type="text" name="location" class="form-input" style="padding-left:36px;"
-                 placeholder="e.g. Dublin, Ireland">
+                 value="<?= htmlspecialchars((string)($profile['location'] ?? '')) ?>" placeholder="e.g. Dublin, Ireland">
         </div>
       </div>
 
       <div class="form-group">
         <label class="form-label">Bio <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
         <textarea name="bio" class="form-input" rows="3"
-                  placeholder="Tell potential matches a little about yourself…"></textarea>
+                  placeholder="Tell potential matches a little about yourself…"><?= htmlspecialchars((string)($profile['bio'] ?? '')) ?></textarea>
       </div>
 
       <p id="step1Error" style="color:#ef4444;font-size:13.5px;margin-bottom:12px;display:none;"></p>
@@ -103,13 +113,12 @@ include __DIR__ . '/includes/header.php';
           ─────────────────────────────────────────────────────────
         -->
         <div class="genre-grid" id="genreList">
-          <!-- Static placeholders — onboarding.js will replace these from the API -->
-          <?php
-          $genres = ['Indie','Electronic','Hip-Hop','Jazz','Classical','Pop','R&B','Metal','Folk','Reggae','Country','Punk'];
-          foreach ($genres as $g):
-          ?>
-            <div class="genre-chip" data-genre="<?= htmlspecialchars($g) ?>">
-              <?= htmlspecialchars($g) ?>
+          <?php foreach ($genres as $genre): ?>
+            <div
+              class="genre-chip <?= in_array((int)$genre['id'], $selectedGenreIds, true) ? 'selected' : '' ?>"
+              data-genre-id="<?= (int)$genre['id'] ?>"
+            >
+              <?= htmlspecialchars((string)$genre['name']) ?>
             </div>
           <?php endforeach; ?>
         </div>
@@ -241,17 +250,17 @@ include __DIR__ . '/includes/header.php';
     const errEl = document.getElementById('step1Error');
     errEl.style.display = 'none';
 
-    const formData = new FormData(e.target);
+    const formData = new URLSearchParams(new FormData(e.target));
     formData.append('action', 'update_profile');
 
-    /*
-      DB CONNECTION POINT
-      const res  = await fetch('/api/users.php', { method:'POST', body: new URLSearchParams(formData) });
-      const data = await res.json();
-      if (!data.success) { errEl.textContent = data.error; errEl.style.display='block'; return; }
-    */
+    const res = await fetch('/api/users.php', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.success) {
+      errEl.textContent = data.error || 'Unable to save your profile.';
+      errEl.style.display = 'block';
+      return;
+    }
 
-    // Placeholder — remove when API is wired:
     goToStep(2);
   });
 
@@ -259,7 +268,7 @@ include __DIR__ . '/includes/header.php';
   document.getElementById('step2Form').addEventListener('submit', async e => {
     e.preventDefault();
     const errEl      = document.getElementById('step2Error');
-    const selectedGenres = [...document.querySelectorAll('.genre-chip.selected')].map(c => c.dataset.genre);
+    const selectedGenres = [...document.querySelectorAll('.genre-chip.selected')].map(c => c.dataset.genreId);
     errEl.style.display = 'none';
 
     if (selectedGenres.length < 2) {
@@ -268,18 +277,39 @@ include __DIR__ . '/includes/header.php';
       return;
     }
 
-    /*
-      DB CONNECTION POINT
-      const payload = { action:'update_music', genres: selectedGenres, artists: artistTags, songs: songTags };
-      const res  = await fetch('/api/users.php', { method:'POST',
-        headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-      const data = await res.json();
-      if (!data.success) { errEl.textContent = data.error; errEl.style.display='block'; return; }
-    */
+    const musicData = new URLSearchParams();
+    musicData.append('action', 'onboarding_music');
+    selectedGenres.forEach(genreId => musicData.append('genres[]', genreId));
+    artistTags.forEach(artist => musicData.append('artists[]', artist));
 
-    // Placeholder — remove when API is wired:
+    const songs = songTags.map(song => {
+      const parts = song.split(/\s+[–-]\s+/);
+      return {
+        title: (parts[0] || song).trim(),
+        artist: (parts[1] || '').trim(),
+      };
+    });
+    musicData.append('songs', JSON.stringify(songs));
+
+    const musicRes = await fetch('/api/users.php', { method: 'POST', body: musicData });
+    const musicJson = await musicRes.json();
+    if (!musicJson.success) {
+      errEl.textContent = musicJson.error || 'Unable to save your music taste.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const doneData = new URLSearchParams({ action: 'complete_onboarding' });
+    const doneRes = await fetch('/api/users.php', { method: 'POST', body: doneData });
+    const doneJson = await doneRes.json();
+    if (!doneJson.success) {
+      errEl.textContent = doneJson.error || 'Unable to finish onboarding.';
+      errEl.style.display = 'block';
+      return;
+    }
+
     goToStep(3);
   });
 </script>
 
-<?php $extraScript = 'onboarding.js'; include __DIR__ . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>

@@ -29,7 +29,7 @@ class UserDAL {
                 uph.photo_url AS profile_photo,
                 (u.status = "active") AS is_active,
                 (u.role = "admin") AS is_admin,
-                EXISTS(SELECT 1 FROM user_preferences pref WHERE pref.user_id = u.user_id) AS onboarding_complete,
+                EXISTS(SELECT 1 FROM user_genres ug WHERE ug.user_id = u.user_id) AS onboarding_complete,
                 u.role,
                 u.status,
                 u.created_at,
@@ -171,18 +171,33 @@ class UserDAL {
 
         $name = array_key_exists('name', $data) ? trim((string)$data['name']) : (string)($current['name'] ?? '');
         $bio = array_key_exists('bio', $data) ? trim((string)$data['bio']) : (string)($current['bio'] ?? '');
+        $birthYear = array_key_exists('dob', $data)
+            ? $this->extractBirthYear((string)$data['dob'])
+            : ($current['birth_year'] !== null ? (int)$current['birth_year'] : null);
         $locationId = array_key_exists('location', $data)
             ? $this->resolveLocationId((string)$data['location'])
             : $this->resolveLocationId((string)($current['location'] ?? ''));
+        $genderId = array_key_exists('gender', $data)
+            ? $this->resolveGenderId((string)$data['gender'])
+            : null;
 
         $this->db->beginTransaction();
         try {
             $stmt = $this->db->prepare(
                 'UPDATE profiles
-                 SET display_name = ?, bio = ?, location_id = ?, updated_at = NOW()
+                 SET display_name = ?, bio = ?, birth_year = ?, location_id = ?, updated_at = NOW()
                  WHERE user_id = ?'
             );
-            $stmt->execute([$name, $bio !== '' ? $bio : null, $locationId, $id]);
+            $stmt->execute([$name, $bio !== '' ? $bio : null, $birthYear, $locationId, $id]);
+
+            if (array_key_exists('gender', $data)) {
+                $stmt = $this->db->prepare(
+                    'INSERT INTO user_preferences (user_id, gender_id, seeking_type, min_age_pref, max_age_pref)
+                     VALUES (?, ?, NULL, NULL, NULL)
+                     ON DUPLICATE KEY UPDATE gender_id = VALUES(gender_id)'
+                );
+                $stmt->execute([$id, $genderId]);
+            }
 
             if (array_key_exists('profile_photo', $data)) {
                 $photo = trim((string)$data['profile_photo']);
@@ -235,6 +250,20 @@ class UserDAL {
         );
 
         return $stmt->execute([$id]);
+    }
+
+    private function extractBirthYear(string $dob): ?int {
+        $dob = trim($dob);
+        if ($dob === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($dob);
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return (int)date('Y', $timestamp);
     }
 
     public function setUserActive(int $id, bool $active): bool {

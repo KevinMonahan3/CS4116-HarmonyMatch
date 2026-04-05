@@ -9,8 +9,14 @@ class AuthController {
     }
 
     public function register(string $email, string $password, string $name, string $dob, string $gender): array {
+        $name = trim($name);
+        $gender = trim($gender);
+
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return ['success' => false, 'error' => 'Invalid email address'];
+        }
+        if ($name === '') {
+            return ['success' => false, 'error' => 'Name is required'];
         }
         if (strlen($password) < 8) {
             return ['success' => false, 'error' => 'Password must be at least 8 characters'];
@@ -25,9 +31,10 @@ class AuthController {
             return ['success' => false, 'error' => 'Unable to create account: ' . $this->userDAL->lastError];
         }
 
-        $_SESSION['user_id']   = $id;
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $id;
         $_SESSION['user_name'] = $name;
-        $_SESSION['is_admin']  = false;
+        $_SESSION['is_admin'] = false;
 
         return ['success' => true, 'user_id' => $id];
     }
@@ -41,9 +48,10 @@ class AuthController {
             return ['success' => false, 'error' => 'Account suspended'];
         }
 
-        $_SESSION['user_id']   = $user['id'];
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'] ?? $user['email'];
-        $_SESSION['is_admin']  = !empty($user['is_admin']);
+        $_SESSION['is_admin'] = !empty($user['is_admin']);
 
         $redirect = !empty($user['onboarding_complete']) ? 'dashboard.php' : 'onboarding.php';
         return ['success' => true, 'redirect' => $redirect];
