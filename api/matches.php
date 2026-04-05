@@ -25,6 +25,11 @@ switch ($action) {
     case 'my_matches':
         echo json_encode($ctrl->getConfirmedMatches($userId));
         break;
+    
+    case 'reset_skips':
+        $ctrl->resetSkips($userId);
+        echo json_encode(['success' => true]);
+        break;
 
     default:
         http_response_code(400);

@@ -68,6 +68,14 @@ class MatchDAL {
         return (int)$stmt->fetchColumn() > 0;
     }
 
+    public function resetSkips(int $userId): void {
+        if (!$this->db) return;
+        $stmt = $this->db->prepare(
+            'DELETE FROM blocks WHERE blocker_user_id = ? AND reason_code = "skip'
+            );
+        $stmt->execute([$userId]);
+    }
+
     public function createMatch(int $userA, int $userB): int {
         if (!$this->db) {
             return 0;

@@ -22,6 +22,11 @@ class MatchController {
         return ['success' => true, 'is_match' => $isMatch];
     }
 
+    public function resetSkips(int $userId): void {
+        $this->matchDAL->resetSkips($userId);
+    }
+        
+
     public function getDashboardMatches(int $userId): array {
         $candidates = $this->matchDAL->getPotentialMatches($userId);
         foreach ($candidates as &$candidate) {

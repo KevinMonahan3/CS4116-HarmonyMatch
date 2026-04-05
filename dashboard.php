@@ -144,12 +144,13 @@ async function refreshMatches() {
     icon.style.animation = 'spin 0.8s linear infinite';
 
     try {
-        if (typeof loadMatches === 'function') {
-            document.getElementById('matchGrid').innerHTML = '<p style="color:var(--text-secondary);">Loading matches...</p>';
-            await loadMatches();
-        } else {
-            location.reload();
-        }
+        await fetch('/api/matches.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'action=reset_skips'
+        });
+        document.getElementById('matchGrid').innerHTML = '<p style="color:var(--text-secondary);">Loading matches...</p>';
+        await loadMatches();
     } finally {
         btn.disabled = false;
         icon.style.animation = '';
