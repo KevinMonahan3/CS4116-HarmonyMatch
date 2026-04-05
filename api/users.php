@@ -26,6 +26,7 @@ switch ($action) {
         break;
 
     case 'onboarding_music':
+    case 'update_music':
         $genresInput = $_POST['genres'] ?? [];
         if (!is_array($genresInput)) {
             $genresInput = $genresInput === '' ? [] : explode(',', (string)$genresInput);

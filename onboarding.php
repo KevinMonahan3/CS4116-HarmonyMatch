@@ -131,6 +131,7 @@ include __DIR__ . '/includes/header.php';
           <i class="fas fa-microphone-alt" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
           <input type="text" id="artistInput" class="form-input" style="padding-left:36px;"
                  placeholder="e.g. Arctic Monkeys">
+          <div id="artistSuggestions" class="music-suggestions" style="display:none;"></div>
         </div>
         <div class="tag-container" id="artistTags" style="margin-top:10px;"></div>
       </div>
@@ -142,6 +143,7 @@ include __DIR__ . '/includes/header.php';
           <i class="fas fa-headphones" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
           <input type="text" id="songInput" class="form-input" style="padding-left:36px;"
                  placeholder="e.g. Do I Wanna Know – Arctic Monkeys">
+          <div id="songSuggestions" class="music-suggestions" style="display:none;"></div>
         </div>
         <div class="tag-container" id="songTags" style="margin-top:10px;"></div>
       </div>
@@ -197,6 +199,41 @@ include __DIR__ . '/includes/header.php';
 
 <style>
   @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .music-suggestions {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(19, 19, 31, 0.98);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 20;
+  }
+  .music-suggestion {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+  }
+  .music-suggestion:last-child {
+    border-bottom: 0;
+  }
+  .music-suggestion:hover,
+  .music-suggestion.active {
+    background: rgba(124,58,237,0.18);
+  }
+  .music-suggestion-title {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .music-suggestion-meta {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 2px;
+  }
 </style>
 
 <script>
@@ -215,34 +252,192 @@ include __DIR__ . '/includes/header.php';
     chip.addEventListener('click', () => chip.classList.toggle('selected'));
   });
 
+  async function musicSearch(action, params) {
+    const query = new URLSearchParams({ action, ...params });
+    const res = await fetch(`/api/music.php?${query.toString()}`);
+    return res.json();
+  }
+
   /* ── Tag inputs (artists & songs) ── */
-  function makeTagInput(inputId, containerId, tagClass) {
+  function makeTagInput(inputId, containerId, tagClass, options = {}) {
     const input = document.getElementById(inputId);
     const box   = document.getElementById(containerId);
+    const suggestionBox = options.suggestionBoxId ? document.getElementById(options.suggestionBoxId) : null;
     const tags  = [];
+    let suggestions = [];
+    let activeIndex = -1;
+    let debounce = null;
 
-    input.addEventListener('keydown', e => {
-      if (e.key !== 'Enter') return;
-      e.preventDefault();
-      const val = input.value.trim();
-      if (!val || tags.includes(val)) { input.value = ''; return; }
-      tags.push(val);
+    function hideSuggestions() {
+      if (!suggestionBox) return;
+      suggestionBox.style.display = 'none';
+      suggestionBox.innerHTML = '';
+      suggestions = [];
+      activeIndex = -1;
+    }
+
+    function removeTag(value, element) {
+      const index = tags.indexOf(value);
+      if (index !== -1) {
+        tags.splice(index, 1);
+      }
+      element.remove();
+    }
+
+    function addTag(value) {
+      const normalized = value.trim();
+      if (!normalized || tags.includes(normalized)) {
+        input.value = '';
+        hideSuggestions();
+        return;
+      }
+
+      tags.push(normalized);
       const tag = document.createElement('span');
       tag.className = 'tag ' + tagClass;
-      tag.innerHTML = `${val} <span class="tag-remove" data-val="${val}">×</span>`;
-      tag.querySelector('.tag-remove').addEventListener('click', () => {
-        tags.splice(tags.indexOf(val), 1);
-        tag.remove();
-      });
+      tag.innerHTML = `${normalized} <span class="tag-remove" data-val="${normalized}">×</span>`;
+      tag.querySelector('.tag-remove').addEventListener('click', () => removeTag(normalized, tag));
       box.appendChild(tag);
       input.value = '';
+      hideSuggestions();
+    }
+
+    function renderSuggestions(items) {
+      if (!suggestionBox) return;
+
+      suggestions = items;
+      activeIndex = items.length ? 0 : -1;
+      suggestionBox.innerHTML = '';
+
+      if (!items.length) {
+        hideSuggestions();
+        return;
+      }
+
+      items.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'music-suggestion' + (index === activeIndex ? ' active' : '');
+        row.innerHTML = `
+          <div class="music-suggestion-title">${item.label}</div>
+          <div class="music-suggestion-meta">${item.meta}</div>
+        `;
+        row.addEventListener('mousedown', e => {
+          e.preventDefault();
+          addTag(item.value);
+        });
+        suggestionBox.appendChild(row);
+      });
+
+      suggestionBox.style.display = 'block';
+    }
+
+    function refreshActiveSuggestion() {
+      if (!suggestionBox) return;
+      [...suggestionBox.children].forEach((node, index) => {
+        node.classList.toggle('active', index === activeIndex);
+      });
+    }
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' && suggestions.length) {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, suggestions.length - 1);
+        refreshActiveSuggestion();
+        return;
+      }
+
+      if (e.key === 'ArrowUp' && suggestions.length) {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        refreshActiveSuggestion();
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        hideSuggestions();
+        return;
+      }
+
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+
+      if (suggestions.length && activeIndex >= 0) {
+        addTag(suggestions[activeIndex].value);
+        return;
+      }
+
+      addTag(input.value);
+    });
+
+    input.addEventListener('input', () => {
+      if (!options.searchAction || !suggestionBox) {
+        return;
+      }
+
+      const query = input.value.trim();
+      if (debounce) {
+        clearTimeout(debounce);
+      }
+
+      if (query.length < 2) {
+        hideSuggestions();
+        return;
+      }
+
+      debounce = setTimeout(async () => {
+        const payload = { query };
+        if (typeof options.extraParams === 'function') {
+          Object.assign(payload, options.extraParams());
+        }
+
+        const data = await musicSearch(options.searchAction, payload);
+        if (!data.success) {
+          hideSuggestions();
+          return;
+        }
+
+        const items = (data.results || []).map(result => {
+          if (options.searchAction === 'search_track') {
+            const title = (result.title || '').trim();
+            const artist = (result.artist || '').trim();
+            return {
+              value: artist ? `${title} - ${artist}` : title,
+              label: title || 'Unknown track',
+              meta: artist || result.disambiguation || 'Track result',
+            };
+          }
+
+          return {
+            value: (result.name || '').trim(),
+            label: (result.name || '').trim() || 'Unknown artist',
+            meta: [result.country, result.disambiguation].filter(Boolean).join(' • ') || 'Artist result',
+          };
+        }).filter(item => item.value !== '');
+
+        renderSuggestions(items);
+      }, 250);
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(hideSuggestions, 150);
     });
 
     return tags; // reference kept for form submission
   }
 
-  const artistTags = makeTagInput('artistInput', 'artistTags', 'tag-cyan');
-  const songTags   = makeTagInput('songInput',   'songTags',   'tag-pink');
+  const artistTags = makeTagInput('artistInput', 'artistTags', 'tag-cyan', {
+    suggestionBoxId: 'artistSuggestions',
+    searchAction: 'search_artist',
+  });
+
+  const songTags = makeTagInput('songInput', 'songTags', 'tag-pink', {
+    suggestionBoxId: 'songSuggestions',
+    searchAction: 'search_track',
+    extraParams: () => {
+      const preferredArtist = artistTags[artistTags.length - 1] || '';
+      return preferredArtist ? { artist: preferredArtist } : {};
+    },
+  });
 
   /* ── Step 1 submit ── */
   document.getElementById('step1Form').addEventListener('submit', async e => {
