@@ -21,6 +21,10 @@ switch ($action) {
         echo json_encode($ctrl->getProfile($targetId));
         break;
 
+    case 'search_locations':
+        echo json_encode($ctrl->searchLocations((string)($_GET['query'] ?? $_POST['query'] ?? '')));
+        break;
+
     case 'update_profile':
         echo json_encode($ctrl->updateProfile($userId, $_POST));
         break;

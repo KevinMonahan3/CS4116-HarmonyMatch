@@ -89,6 +89,43 @@ class UserDAL {
         return (int)$this->db->lastInsertId();
     }
 
+    public function searchLocations(string $query, int $limit = 8): array {
+        if (!$this->db) {
+            return [];
+        }
+
+        $query = trim($query);
+        if ($query === '') {
+            return [];
+        }
+
+        $limit = max(1, min(10, $limit));
+        $search = '%' . $query . '%';
+
+        $stmt = $this->db->prepare(
+            'SELECT
+                location_id AS id,
+                city,
+                country,
+                COALESCE(NULLIF(CONCAT_WS(", ", city, country), ""), city, country) AS label
+             FROM locations
+             WHERE city LIKE ? OR country LIKE ?
+             ORDER BY
+                CASE WHEN city = ? THEN 0 WHEN city LIKE ? THEN 1 ELSE 2 END,
+                city ASC,
+                country ASC
+             LIMIT ?'
+        );
+        $stmt->bindValue(1, $search, PDO::PARAM_STR);
+        $stmt->bindValue(2, $search, PDO::PARAM_STR);
+        $stmt->bindValue(3, $query, PDO::PARAM_STR);
+        $stmt->bindValue(4, $query . '%', PDO::PARAM_STR);
+        $stmt->bindValue(5, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
     public function getUserById(int $id): array|false {
         if (!$this->db) {
             return false;

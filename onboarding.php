@@ -62,6 +62,7 @@ include __DIR__ . '/includes/header.php';
           <i class="fas fa-map-marker-alt" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
           <input type="text" name="location" class="form-input" style="padding-left:36px;"
                  value="<?= htmlspecialchars((string)($profile['location'] ?? '')) ?>" placeholder="e.g. Dublin, Ireland">
+          <div id="locationSuggestions" class="music-suggestions" style="display:none;"></div>
         </div>
       </div>
 
@@ -258,6 +259,12 @@ include __DIR__ . '/includes/header.php';
     return res.json();
   }
 
+  async function locationSearch(query) {
+    const params = new URLSearchParams({ action: 'search_locations', query });
+    const res = await fetch(`/api/users.php?${params.toString()}`);
+    return res.json();
+  }
+
   /* ── Tag inputs (artists & songs) ── */
   function makeTagInput(inputId, containerId, tagClass, options = {}) {
     const input = document.getElementById(inputId);
@@ -438,6 +445,112 @@ include __DIR__ . '/includes/header.php';
       return preferredArtist ? { artist: preferredArtist } : {};
     },
   });
+
+  function setupLocationAutocomplete() {
+    const input = document.querySelector('#step1Form [name="location"]');
+    const box = document.getElementById('locationSuggestions');
+    let items = [];
+    let activeIndex = -1;
+    let debounce = null;
+
+    function hide() {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      items = [];
+      activeIndex = -1;
+    }
+
+    function choose(value) {
+      input.value = value;
+      hide();
+    }
+
+    function render(results) {
+      items = results;
+      activeIndex = results.length ? 0 : -1;
+      box.innerHTML = '';
+
+      if (!results.length) {
+        hide();
+        return;
+      }
+
+      results.forEach((result, index) => {
+        const row = document.createElement('div');
+        row.className = 'music-suggestion' + (index === activeIndex ? ' active' : '');
+        row.innerHTML = `
+          <div class="music-suggestion-title">${result.label}</div>
+          <div class="music-suggestion-meta">Saved city</div>
+        `;
+        row.addEventListener('mousedown', e => {
+          e.preventDefault();
+          choose(result.label);
+        });
+        box.appendChild(row);
+      });
+
+      box.style.display = 'block';
+    }
+
+    function refresh() {
+      [...box.children].forEach((node, index) => {
+        node.classList.toggle('active', index === activeIndex);
+      });
+    }
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' && items.length) {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, items.length - 1);
+        refresh();
+        return;
+      }
+
+      if (e.key === 'ArrowUp' && items.length) {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        refresh();
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        hide();
+        return;
+      }
+
+      if (e.key === 'Enter' && items.length && activeIndex >= 0) {
+        e.preventDefault();
+        choose(items[activeIndex].label);
+      }
+    });
+
+    input.addEventListener('input', () => {
+      const query = input.value.trim();
+      if (debounce) {
+        clearTimeout(debounce);
+      }
+
+      if (query.length < 2) {
+        hide();
+        return;
+      }
+
+      debounce = setTimeout(async () => {
+        const data = await locationSearch(query);
+        if (!data.success) {
+          hide();
+          return;
+        }
+        render(data.results || []);
+      }, 200);
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(hide, 150);
+    });
+  }
+
+  setupLocationAutocomplete();
 
   /* ── Step 1 submit ── */
   document.getElementById('step1Form').addEventListener('submit', async e => {
