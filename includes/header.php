@@ -17,16 +17,16 @@ $pageTitle = $pageTitle ?? 'HarmonyMatch';
 <body>
 
 <nav class="hm-navbar">
-    <div class="navbar-brand">
-        <div class="brand-logo">♪</div>
+    <a href="<?= $baseUrl ?>/dashboard.php" class="navbar-brand">
+        <div class="brand-logo"><i class="fas fa-music"></i></div>
         <span class="brand-name">HarmonyMatch</span>
-    </div>
+    </a>
     <?php if (!empty($_SESSION['user_id'])): ?>
     <div class="navbar-actions">
-        <a href="<?= $baseUrl ?>/dashboard.php" class="btn-ghost"><i class="fas fa-home"></i></a>
-        <a href="<?= $baseUrl ?>/chat.php" class="btn-ghost"><i class="fas fa-comment"></i></a>
-        <a href="<?= $baseUrl ?>/profile-own.php" class="btn-ghost"><i class="fas fa-user"></i></a>
-        <a href="<?= $baseUrl ?>/api/auth.php?action=logout" class="btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
+        <a href="<?= $baseUrl ?>/api/auth.php?action=logout" class="btn-ghost" title="Sign out">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="btn-ghost-label">Sign out</span>
+        </a>
     </div>
     <?php endif; ?>
 </nav>
