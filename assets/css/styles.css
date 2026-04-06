@@ -613,6 +613,34 @@ select.field-input option, select.form-input option {
   line-height: 1.3;
 }
 
+/* Likes page — pink heart badge over photo */
+.likes-heart-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(217,70,239,0.85);
+  color: #fff;
+  font-size: 13px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+/* Clickable profile name in card body */
+.profile-name-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.profile-name-link:hover {
+  color: var(--accent-purple-light);
+}
+
 /* Top artist label in card body */
 .top-artist-label {
   font-size: 12px;

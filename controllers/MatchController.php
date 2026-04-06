@@ -46,6 +46,15 @@ class MatchController {
         return $this->matchDAL->getMatchesForUser($userId);
     }
 
+    public function getLikesReceived(int $userId): array {
+        $likers = $this->matchDAL->getLikesReceived($userId);
+        foreach ($likers as &$liker) {
+            $artists = $this->musicDAL->getUserArtists($liker['id']);
+            $liker['top_artist'] = $artists[0]['name'] ?? null;
+        }
+        return $likers;
+    }
+
     /**
      * Compute a 0-100 compatibility score based on shared music preferences.
      * TODO: Expand with weighted genre/artist/song/mood scoring.

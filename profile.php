@@ -45,6 +45,7 @@ include __DIR__ . '/includes/header.php';
     <nav class="sidebar-nav">
       <a href="/dashboard.php"   class="nav-item"><i class="fas fa-home"></i><span>Discover</span></a>
       <a href="/search.php"      class="nav-item"><i class="fas fa-search"></i><span>Search</span></a>
+      <a href="/likes.php"       class="nav-item"><i class="fas fa-heart"></i><span>Likes</span></a>
       <a href="/chat.php"        class="nav-item"><i class="fas fa-comment"></i><span>Messages</span></a>
       <a href="/profile-own.php" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
     </nav>
@@ -99,13 +100,13 @@ include __DIR__ . '/includes/header.php';
         ─────────────────────────────────────────────────────────
       -->
       <div class="profile-actions">
-        <button class="action-btn like-btn" style="padding:12px 20px;" onclick="swipe(<?= $viewUserId ?>, 'like')">
+        <button class="btn-outline" style="gap:8px;" onclick="swipe(<?= $viewUserId ?>, 'skip')">
+          <i class="fas fa-times"></i> Skip
+        </button>
+        <button class="btn-primary" style="gap:8px;" onclick="swipe(<?= $viewUserId ?>, 'like')">
           <i class="fas fa-heart"></i> Like
         </button>
-        <a href="/chat.php?with=<?= $viewUserId ?>" class="action-btn msg-btn" style="padding:12px 20px;">
-          <i class="fas fa-comment"></i> Message
-        </a>
-        <button class="action-btn pass-btn" style="padding:12px 16px;" onclick="reportUser(<?= $viewUserId ?>)" title="Report">
+        <button class="btn-outline" style="padding:10px 14px;color:var(--text-muted);" onclick="reportUser(<?= $viewUserId ?>)" title="Report user">
           <i class="fas fa-flag"></i>
         </button>
       </div>
@@ -160,10 +161,10 @@ async function swipe(toUserId, action) {
   });
   const data = await res.json();
   if (data.is_match) {
-    // TODO: replace alert with a nice modal
-    alert("It's a match! 🎵 You both liked each other.");
+    window.location = '/chat.php?with=' + toUserId;
+  } else {
+    window.location = '/dashboard.php';
   }
-  window.location = '/dashboard.php';
 }
 
 /*

@@ -58,9 +58,9 @@ async function loadResults() {
                 <button class="action-btn pass-btn" onclick="doSwipe(${u.id}, 'skip', this)" title="Skip">
                     <i class="fas fa-times"></i><span>Skip</span>
                 </button>
-                <a href="/profile.php?id=${u.id}" class="action-btn info-btn" title="View Profile">
+                <button class="action-btn info-btn" onclick="window.location='/profile.php?id=${u.id}'" title="View Profile">
                     <i class="fas fa-user"></i><span>Info</span>
-                </a>
+                </button>
                 <button class="action-btn like-btn" onclick="doSwipe(${u.id}, 'like', this)" title="Like">
                     <i class="fas fa-heart"></i><span>Like</span>
                 </button>

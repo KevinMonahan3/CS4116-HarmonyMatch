@@ -172,6 +172,33 @@ class MatchDAL {
         return $stmt->fetchAll();
     }
 
+    /**
+     * Returns users who have liked $userId but haven't matched with them yet.
+     */
+    public function getLikesReceived(int $userId): array {
+        if (!$this->db) return [];
+
+        $stmt = $this->db->prepare(
+            $this->userSummarySelect() . '
+             WHERE EXISTS (
+                 SELECT 1 FROM likes lk
+                 WHERE lk.actor_user_id = u.user_id AND lk.target_user_id = ?
+             )
+             AND NOT EXISTS (
+                 SELECT 1 FROM matches m
+                 WHERE m.status = "active"
+                   AND (
+                       (m.user_a_id = u.user_id AND m.user_b_id = ?)
+                       OR (m.user_b_id = u.user_id AND m.user_a_id = ?)
+                   )
+             )
+             AND u.status = "active"
+             ORDER BY u.created_at DESC'
+        );
+        $stmt->execute([$userId, $userId, $userId]);
+        return $stmt->fetchAll();
+    }
+
     public function saveCompatibilityScore(int $userA, int $userB, float $score): void {
         if (!$this->db) {
             return;

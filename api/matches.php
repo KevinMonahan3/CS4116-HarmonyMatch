@@ -25,6 +25,10 @@ switch ($action) {
     case 'my_matches':
         echo json_encode($ctrl->getConfirmedMatches($userId));
         break;
+
+    case 'likes_received':
+        echo json_encode($ctrl->getLikesReceived($userId));
+        break;
     
     case 'reset_skips':
         $ctrl->resetSkips($userId);

@@ -17,6 +17,7 @@ include __DIR__ . '/includes/header.php';
     <nav class="sidebar-nav">
       <a href="/dashboard.php"   class="nav-item"><i class="fas fa-home"></i><span>Discover</span></a>
       <a href="/search.php"      class="nav-item active"><i class="fas fa-search"></i><span>Search</span></a>
+      <a href="/likes.php"       class="nav-item"><i class="fas fa-heart"></i><span>Likes</span></a>
       <a href="/chat.php"        class="nav-item"><i class="fas fa-comment"></i><span>Messages</span></a>
       <a href="/profile-own.php" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
     </nav>
