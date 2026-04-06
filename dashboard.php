@@ -57,77 +57,55 @@ include __DIR__ . '/includes/header.php';
     -->
     <div id="matchGrid" class="match-grid">
 
-      <!-- Static placeholder cards — replace with JS-rendered cards once DB is wired -->
+      <!-- Static placeholder cards — replaced by JS once DB is wired -->
       <div class="match-card">
         <div class="match-card-photo">
-          <div class="avatar-placeholder">A</div>
+          <div class="artist-bg-card"><i class="fas fa-music"></i><span>Arctic Monkeys</span></div>
+          <span class="compat-badge">87%</span>
         </div>
         <div class="match-card-body">
           <div class="match-card-name">Alex M.</div>
           <div class="match-card-meta">24 · Dublin</div>
-          <div class="compat-bar">
-            <span class="compat-label">Music Match</span>
-            <div class="compat-track"><div class="compat-fill" style="width:87%"></div></div>
-            <span class="compat-value">87%</span>
-          </div>
-          <div style="margin-top:10px;" class="tag-container">
-            <span class="tag tag-purple">Indie</span>
-            <span class="tag tag-cyan">Electronic</span>
-            <span class="tag tag-pink">Jazz</span>
-          </div>
+          <div class="top-artist-label"><i class="fas fa-music"></i> Arctic Monkeys</div>
         </div>
         <div class="match-card-actions">
-          <button class="action-btn pass-btn"><i class="fas fa-times"></i></button>
-          <button class="action-btn like-btn"><i class="fas fa-heart"></i></button>
-          <button class="action-btn msg-btn"><i class="fas fa-comment"></i></button>
+          <button class="action-btn pass-btn"><i class="fas fa-times"></i><span>Skip</span></button>
+          <a href="#" class="action-btn info-btn"><i class="fas fa-user"></i><span>Info</span></a>
+          <button class="action-btn like-btn"><i class="fas fa-heart"></i><span>Like</span></button>
         </div>
       </div>
 
       <div class="match-card">
         <div class="match-card-photo">
-          <div class="avatar-placeholder">S</div>
+          <div class="artist-bg-card"><i class="fas fa-music"></i><span>Kendrick Lamar</span></div>
+          <span class="compat-badge">72%</span>
         </div>
         <div class="match-card-body">
           <div class="match-card-name">Sam K.</div>
           <div class="match-card-meta">27 · Cork</div>
-          <div class="compat-bar">
-            <span class="compat-label">Music Match</span>
-            <div class="compat-track"><div class="compat-fill" style="width:72%"></div></div>
-            <span class="compat-value">72%</span>
-          </div>
-          <div style="margin-top:10px;" class="tag-container">
-            <span class="tag tag-purple">Hip-Hop</span>
-            <span class="tag tag-cyan">R&B</span>
-          </div>
+          <div class="top-artist-label"><i class="fas fa-music"></i> Kendrick Lamar</div>
         </div>
         <div class="match-card-actions">
-          <button class="action-btn pass-btn"><i class="fas fa-times"></i></button>
-          <button class="action-btn like-btn"><i class="fas fa-heart"></i></button>
-          <button class="action-btn msg-btn"><i class="fas fa-comment"></i></button>
+          <button class="action-btn pass-btn"><i class="fas fa-times"></i><span>Skip</span></button>
+          <a href="#" class="action-btn info-btn"><i class="fas fa-user"></i><span>Info</span></a>
+          <button class="action-btn like-btn"><i class="fas fa-heart"></i><span>Like</span></button>
         </div>
       </div>
 
       <div class="match-card">
         <div class="match-card-photo">
-          <div class="avatar-placeholder">J</div>
+          <div class="artist-bg-card"><i class="fas fa-music"></i><span>Billie Eilish</span></div>
+          <span class="compat-badge">61%</span>
         </div>
         <div class="match-card-body">
           <div class="match-card-name">Jordan L.</div>
           <div class="match-card-meta">22 · Galway</div>
-          <div class="compat-bar">
-            <span class="compat-label">Music Match</span>
-            <div class="compat-track"><div class="compat-fill" style="width:61%"></div></div>
-            <span class="compat-value">61%</span>
-          </div>
-          <div style="margin-top:10px;" class="tag-container">
-            <span class="tag tag-purple">Classical</span>
-            <span class="tag tag-pink">Pop</span>
-          </div>
+          <div class="top-artist-label"><i class="fas fa-music"></i> Billie Eilish</div>
         </div>
         <div class="match-card-actions">
-          <button class="action-btn pass-btn"><i class="fas fa-times"></i></button>
-          <button class="action-btn like-btn"><i class="fas fa-heart"></i></button>
-          <button class="action-btn msg-btn"><i class="fas fa-comment"></i></button>
+          <button class="action-btn pass-btn"><i class="fas fa-times"></i><span>Skip</span></button>
+          <a href="#" class="action-btn info-btn"><i class="fas fa-user"></i><span>Info</span></a>
+          <button class="action-btn like-btn"><i class="fas fa-heart"></i><span>Like</span></button>
         </div>
       </div>
 

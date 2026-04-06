@@ -33,6 +33,9 @@ class MatchController {
             $score = $this->computeCompatibility($userId, $candidate['id']);
             $candidate['compatibility'] = $score;
             $this->matchDAL->saveCompatibilityScore($userId, $candidate['id'], $score);
+
+            $artists = $this->musicDAL->getUserArtists($candidate['id']);
+            $candidate['top_artist'] = $artists[0]['name'] ?? null;
         }
         // Sort by compatibility descending
         usort($candidates, fn($a, $b) => $b['compatibility'] <=> $a['compatibility']);

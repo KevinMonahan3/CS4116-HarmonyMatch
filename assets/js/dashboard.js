@@ -1,5 +1,18 @@
 // dashboard.js — load and render match cards
 
+function buildCardPhoto(m) {
+    if (m.profile_photo) {
+        return `<img src="${m.profile_photo}" alt="${m.name}">`;
+    }
+    if (m.top_artist) {
+        return `<div class="artist-bg-card">
+            <i class="fas fa-music"></i>
+            <span>${m.top_artist}</span>
+        </div>`;
+    }
+    return `<div class="avatar-placeholder">${m.name.charAt(0)}</div>`;
+}
+
 async function loadMatches() {
     const grid = document.getElementById('matchGrid');
     if (!grid) return;
@@ -13,26 +26,25 @@ async function loadMatches() {
     }
 
     grid.innerHTML = matches.map(m => `
-        <div class="match-card hm-card">
-            <div class="match-photo">
-                ${m.profile_photo
-                    ? `<img src="${m.profile_photo}" alt="${m.name}">`
-                    : `<div class="avatar-placeholder">${m.name.charAt(0)}</div>`}
+        <div class="match-card">
+            <div class="match-card-photo">
+                ${buildCardPhoto(m)}
                 <span class="compat-badge">${m.compatibility}%</span>
             </div>
-            <div class="match-info">
-                <h3>${m.name}</h3>
-                <p>${m.location ?? ''}</p>
+            <div class="match-card-body">
+                <div class="match-card-name">${m.name}</div>
+                <div class="match-card-meta">${m.location ?? ''}</div>
+                ${m.top_artist ? `<div class="top-artist-label"><i class="fas fa-music"></i> ${m.top_artist}</div>` : ''}
             </div>
-            <div class="match-actions">
-                <button class="action-btn skip-btn" onclick="doSwipe(${m.id}, 'skip', this)">
-                    <i class="fas fa-times"></i>
+            <div class="match-card-actions">
+                <button class="action-btn pass-btn" onclick="doSwipe(${m.id}, 'skip', this)" title="Skip">
+                    <i class="fas fa-times"></i><span>Skip</span>
                 </button>
-                <a href="/profile.php?id=${m.id}" class="action-btn info-btn">
-                    <i class="fas fa-info"></i>
+                <a href="/profile.php?id=${m.id}" class="action-btn info-btn" title="View Profile">
+                    <i class="fas fa-user"></i><span>Info</span>
                 </a>
-                <button class="action-btn like-btn" onclick="doSwipe(${m.id}, 'like', this)">
-                    <i class="fas fa-heart"></i>
+                <button class="action-btn like-btn" onclick="doSwipe(${m.id}, 'like', this)" title="Like">
+                    <i class="fas fa-heart"></i><span>Like</span>
                 </button>
             </div>
         </div>
