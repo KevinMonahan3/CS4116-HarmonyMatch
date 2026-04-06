@@ -28,25 +28,12 @@ AuthController::requireLogin();
 $viewUserId = (int)($_GET['id'] ?? 0);
 if (!$viewUserId) { header('Location: /dashboard.php'); exit; }
 
-// --- Placeholder data (remove once controllers are wired) ---
-$profile = [
-  'name'          => 'Alex Morgan',
-  'profile_photo' => null,
-  'location'      => 'Dublin, Ireland',
-  'bio'           => 'Huge music nerd. Always at gigs. Lover of rainy days and good playlists.',
-  'genres'        => [['name'=>'Indie'], ['name'=>'Electronic'], ['name'=>'Jazz']],
-  'artists'       => [['name'=>'Arctic Monkeys'], ['name'=>'Bonobo'], ['name'=>'Tame Impala']],
-];
-$score = 87;
-
-/* Uncomment when controllers are ready:
 $userCtrl  = new UserController();
 $matchCtrl = new MatchController();
 $profile   = $userCtrl->getProfile($viewUserId);
 if (!$profile) { header('Location: /dashboard.php'); exit; }
 $myId  = (int)$_SESSION['user_id'];
 $score = $matchCtrl->computeCompatibility($myId, $viewUserId);
-*/
 
 $pageTitle = htmlspecialchars($profile['name']);
 include __DIR__ . '/includes/header.php';
