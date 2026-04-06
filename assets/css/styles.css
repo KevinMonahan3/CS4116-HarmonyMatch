@@ -251,7 +251,7 @@ input, textarea, select { font-family: inherit; }
    ============================================================ */
 .hm-layout {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--navbar-h));
 }
 
 /* Sidebar */
