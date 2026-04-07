@@ -1,6 +1,7 @@
 // search.js — search/discover page
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadGenres();
     loadResults();
 
     document.getElementById('applyFilters')?.addEventListener('click', loadResults);
@@ -37,8 +38,27 @@ async function loadResults() {
     const results = document.getElementById('searchResults');
     results.innerHTML = '<p style="color:var(--text-secondary);">Searching...</p>';
 
-    // TODO: pass filters to API when backend supports it
-    const users = await apiGet('/api/matches.php?action=dashboard');
+    const ageMin = document.getElementById('ageMin')?.value ?? '18';
+    const ageMax = document.getElementById('ageMax')?.value ?? '40';
+    const compat = document.getElementById('compatMin')?.value ?? '0';
+    const genreId = document.getElementById('genreFilter')?.value ?? '';
+    const query = document.getElementById('searchQuery')?.value?.trim() ?? '';
+
+    const params = new URLSearchParams({
+        action: 'search',
+        min_age: ageMin,
+        max_age: ageMax,
+        min_compatibility: compat,
+    });
+
+    if (genreId) {
+        params.set('genre_id', genreId);
+    }
+    if (query) {
+        params.set('query', query);
+    }
+
+    const users = await apiGet(`/api/users.php?${params.toString()}`);
     if (!Array.isArray(users) || users.length === 0) {
         results.innerHTML = '<p style="color:var(--text-secondary);">No results found.</p>';
         return;
@@ -51,8 +71,13 @@ async function loadResults() {
             </div>
             <div class="match-card-body">
                 <div class="match-card-name">${u.name}</div>
-                <div class="match-card-meta">${u.location ?? ''}</div>
+                <div class="match-card-meta">${[u.age, u.location].filter(Boolean).join(' · ')}</div>
                 ${u.top_artist ? `<div class="top-artist-label"><i class="fas fa-music"></i> ${u.top_artist}</div>` : ''}
+                ${(u.genres || []).length ? `
+                    <div class="tag-container" style="margin-top:10px;">
+                        ${(u.genres || []).slice(0, 3).map(g => `<span class="tag tag-purple">${g.name}</span>`).join('')}
+                    </div>
+                ` : ''}
             </div>
             <div class="match-card-actions">
                 <button class="action-btn pass-btn" onclick="doSwipe(${u.id}, 'skip', this)" title="Skip">
@@ -76,4 +101,22 @@ async function doSwipe(toUserId, action, btn) {
         alert("It's a match! 🎵 Start the conversation.");
     }
     btn.closest('.match-card').remove();
+}
+
+async function loadGenres() {
+    const select = document.getElementById('genreFilter');
+    if (!select) {
+        return;
+    }
+
+    const genres = await apiGet('/api/users.php?action=genres');
+    if (!Array.isArray(genres)) {
+        return;
+    }
+
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Any genre</option>' + genres.map(
+        genre => `<option value="${genre.id}">${genre.name}</option>`
+    ).join('');
+    select.value = currentValue;
 }

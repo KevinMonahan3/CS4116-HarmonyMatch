@@ -1,14 +1,17 @@
 <?php
 require_once __DIR__ . '/../dal/UserDAL.php';
 require_once __DIR__ . '/../dal/MusicDAL.php';
+require_once __DIR__ . '/MatchController.php';
 
 class UserController {
     private UserDAL $userDAL;
     private MusicDAL $musicDAL;
+    private MatchController $matchController;
 
     public function __construct() {
         $this->userDAL = new UserDAL();
         $this->musicDAL = new MusicDAL();
+        $this->matchController = new MatchController();
     }
 
     public function getProfile(int $userId): array|false {
@@ -31,6 +34,44 @@ class UserController {
             'success' => true,
             'results' => $this->userDAL->searchLocations($query),
         ];
+    }
+
+    public function search(int $currentUserId, array $filters): array {
+        $results = $this->userDAL->searchUsers([
+            'exclude_id' => $currentUserId,
+            'query' => trim((string)($filters['query'] ?? '')),
+            'genre_id' => (int)($filters['genre_id'] ?? 0),
+        ]);
+
+        $minAge = max(18, (int)($filters['min_age'] ?? 18));
+        $maxAge = max($minAge, min(100, (int)($filters['max_age'] ?? 100)));
+        $minCompatibility = max(0, min(100, (float)($filters['min_compatibility'] ?? 0)));
+        $currentYear = (int)date('Y');
+
+        $filtered = [];
+        foreach ($results as $user) {
+            $birthYear = isset($user['birth_year']) ? (int)$user['birth_year'] : 0;
+            $age = $birthYear > 0 ? $currentYear - $birthYear : null;
+
+            if ($age !== null && ($age < $minAge || $age > $maxAge)) {
+                continue;
+            }
+
+            $compatibility = $this->matchController->computeCompatibility($currentUserId, (int)$user['id']);
+            if ($compatibility < $minCompatibility) {
+                continue;
+            }
+
+            $user['age'] = $age;
+            $user['compatibility'] = $compatibility;
+            $user['genres'] = $this->musicDAL->getUserGenres((int)$user['id']);
+            $user['top_artist'] = $this->musicDAL->getUserArtists((int)$user['id'])[0]['name'] ?? null;
+            $filtered[] = $user;
+        }
+
+        usort($filtered, static fn(array $a, array $b): int => $b['compatibility'] <=> $a['compatibility']);
+
+        return $filtered;
     }
 
     public function updateProfile(int $userId, array $data): array {

@@ -334,14 +334,43 @@ class UserDAL {
             return [];
         }
 
-        $stmt = $this->db->prepare(
-            $this->baseUserSelect() . '
+        $sql = $this->baseUserSelect() . '
              WHERE u.user_id != ?
-               AND u.status = "active"
+               AND u.status = "active"';
+        $params = [(int)($filters['exclude_id'] ?? 0)];
+
+        $query = trim((string)($filters['query'] ?? ''));
+        if ($query !== '') {
+            $sql .= '
+               AND (
+                    p.display_name LIKE ?
+                    OR l.city LIKE ?
+                    OR l.country LIKE ?
+               )';
+            $like = '%' . $query . '%';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $genreId = (int)($filters['genre_id'] ?? 0);
+        if ($genreId > 0) {
+            $sql .= '
+               AND EXISTS (
+                    SELECT 1
+                    FROM user_genres ug
+                    WHERE ug.user_id = u.user_id
+                      AND ug.genre_id = ?
+               )';
+            $params[] = $genreId;
+        }
+
+        $sql .= '
              ORDER BY u.created_at DESC
-             LIMIT 50'
-        );
-        $stmt->execute([(int)($filters['exclude_id'] ?? 0)]);
+             LIMIT 50';
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
 
         return $stmt->fetchAll();
     }

@@ -25,6 +25,16 @@ switch ($action) {
         echo json_encode($ctrl->searchLocations((string)($_GET['query'] ?? $_POST['query'] ?? '')));
         break;
 
+    case 'search':
+        echo json_encode($ctrl->search($userId, [
+            'query' => (string)($_GET['query'] ?? $_POST['query'] ?? ''),
+            'genre_id' => (int)($_GET['genre_id'] ?? $_POST['genre_id'] ?? 0),
+            'min_age' => (int)($_GET['min_age'] ?? $_POST['min_age'] ?? 18),
+            'max_age' => (int)($_GET['max_age'] ?? $_POST['max_age'] ?? 60),
+            'min_compatibility' => (float)($_GET['min_compatibility'] ?? $_POST['min_compatibility'] ?? 0),
+        ]));
+        break;
+
     case 'update_profile':
         echo json_encode($ctrl->updateProfile($userId, $_POST));
         break;

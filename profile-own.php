@@ -6,6 +6,7 @@
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/UserController.php';
+require_once __DIR__ . '/dal/MusicDAL.php';
 AuthController::requireLogin();
 
 $userId = (int)$_SESSION['user_id'];
@@ -29,6 +30,11 @@ $profile = $ctrl->getProfile($userId) ?: [
   'genres'        => [],
   'artists'       => [],
 ];
+$genres = (new MusicDAL())->getAllGenres();
+$selectedGenreIds = array_map(
+  static fn(array $genre): int => (int)($genre['id'] ?? 0),
+  $profile['genres'] ?? []
+);
 
 $pageTitle = 'My Profile';
 include __DIR__ . '/includes/header.php';
@@ -130,34 +136,49 @@ include __DIR__ . '/includes/header.php';
     <div class="hm-card" style="margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="margin:0;">My Music</h3>
-        <a href="/onboarding.php" class="btn-outline" style="font-size:13px;">
-          <i class="fas fa-pen"></i> Edit Taste
-        </a>
+        <span style="font-size:13px;color:var(--text-secondary);">Update your taste without leaving this page</span>
       </div>
 
-      <?php if (empty($profile['genres']) && empty($profile['artists'])): ?>
-        <p style="color:var(--text-secondary);font-size:14px;">
-          You haven't set your music taste yet.
-          <a href="/onboarding.php" style="color:var(--accent-purple-light);">Set it up →</a>
-        </p>
-      <?php else: ?>
-        <?php if (!empty($profile['genres'])): ?>
-          <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px;">Genres</p>
-          <div class="tag-container" style="margin-bottom:14px;">
-            <?php foreach ($profile['genres'] as $g): ?>
-              <span class="tag tag-purple"><?= htmlspecialchars($g['name']) ?></span>
+      <form id="musicProfileForm">
+        <div class="form-group">
+          <label class="form-label">Favourite Genres</label>
+          <div class="genre-grid" id="profileGenreList">
+            <?php foreach ($genres as $genre): ?>
+              <div
+                class="genre-chip <?= in_array((int)$genre['id'], $selectedGenreIds, true) ? 'selected' : '' ?>"
+                data-genre-id="<?= (int)$genre['id'] ?>"
+              >
+                <?= htmlspecialchars((string)$genre['name']) ?>
+              </div>
             <?php endforeach; ?>
           </div>
-        <?php endif; ?>
-        <?php if (!empty($profile['artists'])): ?>
-          <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px;">Artists</p>
-          <div class="tag-container">
-            <?php foreach ($profile['artists'] as $a): ?>
-              <span class="tag tag-cyan"><?= htmlspecialchars($a['name']) ?></span>
-            <?php endforeach; ?>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Favourite Artists</label>
+          <div style="position:relative;">
+            <i class="fas fa-microphone-alt" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
+            <input type="text" id="profileArtistInput" class="form-input" style="padding-left:36px;" placeholder="Search artist">
+            <div id="profileArtistSuggestions" class="music-suggestions" style="display:none;"></div>
           </div>
-        <?php endif; ?>
-      <?php endif; ?>
+          <div class="tag-container" id="profileArtistTags" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Favourite Songs</label>
+          <div style="position:relative;">
+            <i class="fas fa-headphones" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
+            <input type="text" id="profileSongInput" class="form-input" style="padding-left:36px;" placeholder="Search song">
+            <div id="profileSongSuggestions" class="music-suggestions" style="display:none;"></div>
+          </div>
+          <div class="tag-container" id="profileSongTags" style="margin-top:10px;"></div>
+        </div>
+
+        <p id="musicProfileMsg" style="display:none;font-size:13.5px;margin-bottom:12px;"></p>
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-music"></i> Save Music Preferences
+        </button>
+      </form>
     </div>
 
     <!-- Account / Danger zone -->
@@ -190,7 +211,245 @@ include __DIR__ . '/includes/header.php';
   </main>
 </div>
 
+<style>
+  .music-suggestions {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(19, 19, 31, 0.98);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 20;
+  }
+  .music-suggestion {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+  }
+  .music-suggestion:last-child {
+    border-bottom: 0;
+  }
+  .music-suggestion:hover,
+  .music-suggestion.active {
+    background: rgba(124,58,237,0.18);
+  }
+  .music-suggestion-title {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .music-suggestion-meta {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+</style>
+
 <script>
+  async function musicSearch(action, params) {
+    const query = new URLSearchParams({ action, ...params });
+    const res = await fetch(`/api/music.php?${query.toString()}`);
+    return res.json();
+  }
+
+  function createTagManager(config) {
+    const input = document.getElementById(config.inputId);
+    const box = document.getElementById(config.containerId);
+    const suggestionBox = document.getElementById(config.suggestionBoxId);
+    const tags = [...(config.initialValues || [])];
+    let suggestions = [];
+    let activeIndex = -1;
+    let debounce = null;
+
+    function renderTags() {
+      box.innerHTML = '';
+      tags.forEach(value => {
+        const tag = document.createElement('span');
+        tag.className = 'tag ' + config.tagClass;
+        tag.innerHTML = `${value} <span class="tag-remove" data-val="${value}">×</span>`;
+        tag.querySelector('.tag-remove').addEventListener('click', () => {
+          const index = tags.indexOf(value);
+          if (index !== -1) {
+            tags.splice(index, 1);
+          }
+          renderTags();
+        });
+        box.appendChild(tag);
+      });
+    }
+
+    function hideSuggestions() {
+      suggestionBox.style.display = 'none';
+      suggestionBox.innerHTML = '';
+      suggestions = [];
+      activeIndex = -1;
+    }
+
+    function addTag(value) {
+      const normalized = value.trim();
+      if (!normalized || tags.includes(normalized)) {
+        input.value = '';
+        hideSuggestions();
+        return;
+      }
+
+      tags.push(normalized);
+      renderTags();
+      input.value = '';
+      hideSuggestions();
+    }
+
+    function refreshActiveSuggestion() {
+      [...suggestionBox.children].forEach((node, index) => {
+        node.classList.toggle('active', index === activeIndex);
+      });
+    }
+
+    function renderSuggestions(items) {
+      suggestions = items;
+      activeIndex = items.length ? 0 : -1;
+      suggestionBox.innerHTML = '';
+
+      if (!items.length) {
+        hideSuggestions();
+        return;
+      }
+
+      items.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'music-suggestion' + (index === activeIndex ? ' active' : '');
+        row.innerHTML = `
+          <div class="music-suggestion-title">${item.label}</div>
+          <div class="music-suggestion-meta">${item.meta}</div>
+        `;
+        row.addEventListener('mousedown', e => {
+          e.preventDefault();
+          addTag(item.value);
+        });
+        suggestionBox.appendChild(row);
+      });
+
+      suggestionBox.style.display = 'block';
+    }
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' && suggestions.length) {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, suggestions.length - 1);
+        refreshActiveSuggestion();
+        return;
+      }
+
+      if (e.key === 'ArrowUp' && suggestions.length) {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        refreshActiveSuggestion();
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        hideSuggestions();
+        return;
+      }
+
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+
+      if (suggestions.length && activeIndex >= 0) {
+        addTag(suggestions[activeIndex].value);
+        return;
+      }
+
+      addTag(input.value);
+    });
+
+    input.addEventListener('input', () => {
+      const query = input.value.trim();
+      if (debounce) {
+        clearTimeout(debounce);
+      }
+
+      if (query.length < 2) {
+        hideSuggestions();
+        return;
+      }
+
+      debounce = setTimeout(async () => {
+        const payload = { query };
+        if (typeof config.extraParams === 'function') {
+          Object.assign(payload, config.extraParams());
+        }
+
+        const data = await musicSearch(config.searchAction, payload);
+        if (!data.success) {
+          hideSuggestions();
+          return;
+        }
+
+        const items = (data.results || []).map(result => {
+          if (config.searchAction === 'search_track') {
+            const title = (result.title || '').trim();
+            const artist = (result.artist || '').trim();
+            return {
+              value: artist ? `${title} - ${artist}` : title,
+              label: title || 'Unknown track',
+              meta: artist || result.disambiguation || 'Track result',
+            };
+          }
+
+          return {
+            value: (result.name || '').trim(),
+            label: (result.name || '').trim() || 'Unknown artist',
+            meta: [result.country, result.disambiguation].filter(Boolean).join(' • ') || 'Artist result',
+          };
+        }).filter(item => item.value !== '');
+
+        renderSuggestions(items);
+      }, 250);
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(hideSuggestions, 150);
+    });
+
+    renderTags();
+
+    return {
+      getValues: () => [...tags],
+    };
+  }
+
+  document.querySelectorAll('#profileGenreList .genre-chip').forEach(chip => {
+    chip.addEventListener('click', () => chip.classList.toggle('selected'));
+  });
+
+  const profileArtistManager = createTagManager({
+    inputId: 'profileArtistInput',
+    containerId: 'profileArtistTags',
+    suggestionBoxId: 'profileArtistSuggestions',
+    tagClass: 'tag-cyan',
+    searchAction: 'search_artist',
+    initialValues: <?= json_encode(array_values(array_map(static fn(array $artist): string => (string)$artist['name'], $profile['artists'] ?? []))) ?>,
+  });
+
+  const profileSongManager = createTagManager({
+    inputId: 'profileSongInput',
+    containerId: 'profileSongTags',
+    suggestionBoxId: 'profileSongSuggestions',
+    tagClass: 'tag-pink',
+    searchAction: 'search_track',
+    initialValues: <?= json_encode(array_values(array_map(static fn(array $song): string => trim((string)($song['title'] ?? '') . ' - ' . (string)($song['artist'] ?? '')), $profile['songs'] ?? []))) ?>,
+    extraParams: () => {
+      const artists = profileArtistManager.getValues();
+      const preferredArtist = artists[artists.length - 1] || '';
+      return preferredArtist ? { artist: preferredArtist } : {};
+    },
+  });
+
   document.getElementById('profileForm').addEventListener('submit', async e => {
     e.preventDefault();
     const msgEl = document.getElementById('profileMsg');
@@ -203,6 +462,43 @@ include __DIR__ . '/includes/header.php';
     msgEl.style.color   = json.success ? '#10b981' : '#ef4444';
     msgEl.textContent   = json.success ? 'Profile saved.' : (json.error || 'Unable to save profile.');
     setTimeout(() => msgEl.style.display = 'none', 3000);
+  });
+
+  document.getElementById('musicProfileForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msgEl = document.getElementById('musicProfileMsg');
+    const selectedGenres = [...document.querySelectorAll('#profileGenreList .genre-chip.selected')]
+      .map(chip => chip.dataset.genreId);
+
+    if (selectedGenres.length < 2) {
+      msgEl.style.display = 'block';
+      msgEl.style.color = '#ef4444';
+      msgEl.textContent = 'Please select at least 2 genres.';
+      return;
+    }
+
+    const data = new URLSearchParams();
+    data.append('action', 'update_music');
+    selectedGenres.forEach(genreId => data.append('genres[]', genreId));
+    profileArtistManager.getValues().forEach(artist => data.append('artists[]', artist));
+
+    const songs = profileSongManager.getValues().map(song => {
+      const parts = song.split(/\s+[–-]\s+/);
+      return {
+        title: (parts[0] || song).trim(),
+        artist: (parts[1] || '').trim(),
+      };
+    });
+    data.append('songs', JSON.stringify(songs));
+
+    const res = await fetch('/api/users.php', { method: 'POST', body: data });
+    const json = await res.json();
+    msgEl.style.display = 'block';
+    msgEl.style.color = json.success ? '#10b981' : '#ef4444';
+    msgEl.textContent = json.success ? 'Music preferences saved.' : (json.error || 'Unable to save music preferences.');
+    if (json.success) {
+      setTimeout(() => window.location.reload(), 700);
+    }
   });
 
   function deleteAccount() {

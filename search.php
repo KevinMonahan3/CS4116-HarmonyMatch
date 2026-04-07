@@ -52,23 +52,8 @@ include __DIR__ . '/includes/header.php';
         <!-- Genre filter -->
         <div class="form-group">
           <label class="form-label">Genre</label>
-          <!--
-            DB CONNECTION POINT — Genre dropdown
-            ────────────────────────────────────────────────────
-            Populate these <option> elements dynamically:
-              • Fetch from /api/users.php?action=genres (calls MusicDAL::getAllGenres())
-              • Or render server-side with a PHP foreach over $genres
-            ────────────────────────────────────────────────────
-          -->
           <select id="genreFilter" class="form-input">
             <option value="">Any genre</option>
-            <option value="1">Indie</option>
-            <option value="2">Electronic</option>
-            <option value="3">Hip-Hop</option>
-            <option value="4">Jazz</option>
-            <option value="5">Classical</option>
-            <option value="6">Pop</option>
-            <option value="7">R&B</option>
           </select>
         </div>
 
@@ -117,36 +102,5 @@ include __DIR__ . '/includes/header.php';
 
   </main>
 </div>
-
-<script>
-  /* Live display of slider values */
-  const ageMin     = document.getElementById('ageMin');
-  const ageMax     = document.getElementById('ageMax');
-  const ageDisplay = document.getElementById('ageDisplay');
-  const compatMin  = document.getElementById('compatMin');
-  const compatDisp = document.getElementById('compatDisplay');
-
-  function updateAge()   { ageDisplay.textContent = ageMin.value + ' – ' + ageMax.value; }
-  function updateCompat(){ compatDisp.textContent  = compatMin.value + '%'; }
-
-  ageMin.addEventListener('input', updateAge);
-  ageMax.addEventListener('input', updateAge);
-  compatMin.addEventListener('input', updateCompat);
-
-  /*
-    DB CONNECTION POINT — Apply Filters button
-    ─────────────────────────────────────────────────────────
-    Move this logic into assets/js/search.js once the API is ready.
-    The handler should:
-      1. Read all filter values
-      2. fetch('/api/users.php?action=search&...')
-      3. Render returned users as .match-card elements in #searchResults
-    ─────────────────────────────────────────────────────────
-  */
-  document.getElementById('applyFilters').addEventListener('click', () => {
-    // TODO: wire to search.js / API
-    alert('Search API not yet connected. Wire up /api/users.php?action=search here.');
-  });
-</script>
 
 <?php $extraScript = 'search.js'; include __DIR__ . '/includes/footer.php'; ?>
