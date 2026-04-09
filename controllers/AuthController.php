@@ -18,8 +18,13 @@ class AuthController {
         if ($name === '') {
             return ['success' => false, 'error' => 'Name is required'];
         }
-        if (strlen($password) < 8) {
-            return ['success' => false, 'error' => 'Password must be at least 8 characters'];
+        $pwErrors = [];
+        if (strlen($password) < 8)            $pwErrors[] = 'at least 8 characters';
+        if (!preg_match('/[A-Z]/', $password)) $pwErrors[] = 'an uppercase letter';
+        if (!preg_match('/[0-9]/', $password)) $pwErrors[] = 'a number';
+        if (!preg_match('/[^A-Za-z0-9]/', $password)) $pwErrors[] = 'a special character';
+        if (!empty($pwErrors)) {
+            return ['success' => false, 'error' => 'Password is missing: ' . implode(', ', $pwErrors)];
         }
         if ($this->userDAL->getUserByEmail($email)) {
             return ['success' => false, 'error' => 'Email already registered'];

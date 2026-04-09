@@ -77,6 +77,12 @@ if (!empty($_SESSION['user_id'])) {
     .check-row input { accent-color: var(--accent-purple); width: 15px; height: 15px; }
     .error-msg { color: #ef4444; font-size: 13.5px; margin-bottom: 12px; display: none; }
     .success-msg { color: #10b981; font-size: 13.5px; margin-bottom: 12px; display: none; }
+    .pw-reqs { margin-top:8px; padding:10px 12px; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
+    .pw-reqs-title { font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; }
+    .pw-req { font-size:12.5px; color:var(--text-muted); display:flex; align-items:center; gap:6px; margin-bottom:3px; transition:color 0.2s; }
+    .pw-req:last-child { margin-bottom:0; }
+    .pw-req.met { color:#10b981; }
+    .pw-req i { font-size:11px; width:12px; }
   </style>
 </head>
 <body>
@@ -226,7 +232,14 @@ if (!empty($_SESSION['user_id'])) {
             <label class="field-label">Password</label>
             <div class="input-wrap">
               <i class="fas fa-lock"></i>
-              <input class="field-input" type="password" id="regPassword" placeholder="Min. 8 characters" />
+              <input class="field-input" type="password" id="regPassword" placeholder="Create a password" oninput="checkPwReqs()" />
+            </div>
+            <div class="pw-reqs">
+              <div class="pw-reqs-title">Password must have:</div>
+              <div class="pw-req" id="req-length"><i class="fas fa-circle-xmark"></i> At least 8 characters</div>
+              <div class="pw-req" id="req-upper"><i class="fas fa-circle-xmark"></i> At least 1 uppercase letter</div>
+              <div class="pw-req" id="req-number"><i class="fas fa-circle-xmark"></i> At least 1 number</div>
+              <div class="pw-req" id="req-special"><i class="fas fa-circle-xmark"></i> At least 1 special character (!@#$% etc.)</div>
             </div>
           </div>
           <div class="field">
@@ -280,6 +293,28 @@ if (!empty($_SESSION['user_id'])) {
       }
     }
 
+    function checkPwReqs() {
+      const pw = document.getElementById('regPassword').value;
+      const set = (id, ok) => {
+        const el = document.getElementById(id);
+        el.classList.toggle('met', ok);
+        el.querySelector('i').className = ok ? 'fas fa-circle-check' : 'fas fa-circle-xmark';
+      };
+      set('req-length',  pw.length >= 8);
+      set('req-upper',   /[A-Z]/.test(pw));
+      set('req-number',  /[0-9]/.test(pw));
+      set('req-special', /[^A-Za-z0-9]/.test(pw));
+    }
+
+    function getPwErrors(pw) {
+      const missing = [];
+      if (pw.length < 8)           missing.push('at least 8 characters');
+      if (!/[A-Z]/.test(pw))       missing.push('an uppercase letter');
+      if (!/[0-9]/.test(pw))       missing.push('a number');
+      if (!/[^A-Za-z0-9]/.test(pw)) missing.push('a special character');
+      return missing;
+    }
+
     async function doRegister() {
       const firstName = document.getElementById('regFirstName').value.trim();
       const lastName  = document.getElementById('regLastName').value.trim();
@@ -295,6 +330,12 @@ if (!empty($_SESSION['user_id'])) {
       errEl.style.display = 'none';
       sucEl.style.display = 'none';
 
+      const pwErrors = getPwErrors(password);
+      if (pwErrors.length > 0) {
+        errEl.textContent = 'Password is missing: ' + pwErrors.join(', ') + '.';
+        errEl.style.display = 'block';
+        return;
+      }
       if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
       if (!terms)               { errEl.textContent = 'Please agree to the terms.'; errEl.style.display = 'block'; return; }
 
