@@ -199,7 +199,14 @@ class MatchDAL {
         return $stmt->fetchAll();
     }
 
-    public function saveCompatibilityScore(int $userA, int $userB, float $score): void {
+    public function saveCompatibilityScore(
+        int $userA,
+        int $userB,
+        float $score,
+        float $genreOverlap = 0.0,
+        float $artistSimilarity = 0.0,
+        float $songMatch = 0.0
+    ): void {
         if (!$this->db) {
             return;
         }
@@ -210,10 +217,15 @@ class MatchDAL {
         $stmt = $this->db->prepare(
             'INSERT INTO compatibility_scores
                 (user_a_id, user_b_id, genre_overlap, artist_similarity, song_match, mood_similarity, final_score, computed_at)
-             VALUES (?, ?, NULL, NULL, NULL, NULL, ?, NOW())
-             ON DUPLICATE KEY UPDATE final_score = VALUES(final_score), computed_at = VALUES(computed_at)'
+             VALUES (?, ?, ?, ?, ?, NULL, ?, NOW())
+             ON DUPLICATE KEY UPDATE
+                genre_overlap      = VALUES(genre_overlap),
+                artist_similarity  = VALUES(artist_similarity),
+                song_match         = VALUES(song_match),
+                final_score        = VALUES(final_score),
+                computed_at        = VALUES(computed_at)'
         );
-        $stmt->execute([$a, $b, $score]);
+        $stmt->execute([$a, $b, $genreOverlap, $artistSimilarity, $songMatch, $score]);
     }
 
     public function getCompatibilityScore(int $userA, int $userB): float {
