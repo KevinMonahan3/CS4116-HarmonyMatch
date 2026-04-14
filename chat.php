@@ -154,7 +154,7 @@ include __DIR__ . '/includes/header.php';
     document.getElementById('inboxEmpty').style.display = items.length ? 'none' : 'block';
 
     items.forEach(item => {
-      const otherId   = item.from_user_id == CURRENT_USER_ID ? item.to_user_id : item.from_user_id;
+      const otherId   = item.other_user_id;
       const otherName = item.other_name ?? 'Unknown';
       const div = document.createElement('div');
       div.className = 'inbox-item';

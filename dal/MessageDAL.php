@@ -123,13 +123,10 @@ class MessageDAL {
             'SELECT
                 msg.message_id AS id,
                 msg.sender_user_id AS from_user_id,
-                CASE
-                    WHEN msg.sender_user_id = mt.user_a_id THEN mt.user_b_id
-                    ELSE mt.user_a_id
-                END AS to_user_id,
                 msg.body AS content,
                 msg.sent_at,
                 msg.read_at,
+                IF(mt.user_a_id = ?, mt.user_b_id, mt.user_a_id) AS other_user_id,
                 other_profile.display_name AS other_name,
                 other_photo.photo_url AS other_photo
              FROM chats c
@@ -149,7 +146,7 @@ class MessageDAL {
              WHERE mt.user_a_id = ? OR mt.user_b_id = ?
              ORDER BY msg.sent_at DESC'
         );
-        $stmt->execute([$userId, $userId, $userId, $userId]);
+        $stmt->execute([$userId, $userId, $userId, $userId, $userId]);
         return $stmt->fetchAll();
     }
 
