@@ -51,32 +51,7 @@ include __DIR__ . '/includes/header.php';
         ─────────────────────────────────────────────────────────
       -->
       <div id="inboxList">
-
-        <!-- Static placeholder inbox items — remove once API is wired -->
-        <div class="inbox-item" onclick="loadConversation(99, this)">
-          <div class="inbox-avatar">A</div>
-          <div class="inbox-info">
-            <div class="inbox-name">Alex M.</div>
-            <div class="inbox-preview">I love that song too! 🎵</div>
-          </div>
-        </div>
-
-        <div class="inbox-item" onclick="loadConversation(98, this)">
-          <div class="inbox-avatar">S</div>
-          <div class="inbox-info">
-            <div class="inbox-name">Sam K.</div>
-            <div class="inbox-preview">Have you heard the new album?</div>
-          </div>
-        </div>
-
-        <div class="inbox-item" onclick="loadConversation(97, this)">
-          <div class="inbox-avatar">J</div>
-          <div class="inbox-info">
-            <div class="inbox-name">Jordan L.</div>
-            <div class="inbox-preview">What are you listening to rn?</div>
-          </div>
-        </div>
-
+        <p id="inboxEmpty" style="color:var(--text-muted);font-size:13px;padding:12px;display:none;">No conversations yet.</p>
       </div><!-- /#inboxList -->
     </div>
 
@@ -147,69 +122,138 @@ include __DIR__ . '/includes/header.php';
   const CURRENT_USER_ID = <?= (int)($_SESSION['user_id'] ?? 0) ?>;
   const OPEN_WITH       = <?= $withUserId ?: 'null' ?>;
 
-  const FAKE_USERS = {
-    99: { name: 'Alex M.',   initial: 'A' },
-    98: { name: 'Sam K.',    initial: 'S' },
-    97: { name: 'Jordan L.', initial: 'J' },
-  };
+  let activeUserId   = null;
+  let pollTimer      = null;
 
-  const FAKE_MESSAGES = {
-    99: [
-      { self: false, text: "Hey! I saw you're into Indie too 🎸",           time: '2:14 pm' },
-      { self: true,  text: 'Yes! Especially Arctic Monkeys 🎵',             time: '2:15 pm' },
-      { self: false, text: 'I love that song too! What else are you into?', time: '2:16 pm' },
-    ],
-    98: [
-      { self: false, text: 'Have you heard the new Hozier album?',              time: '1:30 pm' },
-      { self: true,  text: 'Not yet! Is it good?',                             time: '1:38 pm' },
-      { self: false, text: "It's incredible, you need to listen immediately",   time: '1:40 pm' },
-      { self: true,  text: 'Adding it to my queue now 🎧',                     time: '1:41 pm' },
-      { self: false, text: 'Have you heard the new album?',                     time: '1:42 pm' },
-    ],
-    97: [
-      { self: false, text: 'What are you listening to rn?',               time: 'Yesterday' },
-      { self: true,  text: 'Been on a massive Fleetwood Mac kick lately', time: 'Yesterday' },
-      { self: false, text: 'Classic taste 🙌 Dreams or Go Your Own Way?', time: 'Yesterday' },
-    ],
-  };
-
-  function loadConversation(userId, el) {
-    console.log('loadConversation called', userId);
-    document.querySelectorAll('.inbox-item').forEach(item => item.classList.remove('active'));
-    if (el) el.classList.add('active');
-
-    const user = FAKE_USERS[userId];
-    document.getElementById('chatHeader').innerHTML =
-      `<div class="inbox-avatar" style="width:36px;height:36px;font-size:.9rem;margin-right:10px;">${user.initial}</div><strong>${user.name}</strong>`;
-
-    const container = document.getElementById('chatMessages');
-    container.innerHTML = (FAKE_MESSAGES[userId] ?? []).map(m => `
-      <div style="display:flex;flex-direction:column;align-self:${m.self ? 'flex-end' : 'flex-start'};max-width:70%;">
-        <div class="msg-bubble ${m.self ? 'sent' : 'received'}">${m.text}</div>
-        <div class="msg-time" style="text-align:${m.self ? 'right' : 'left'}">${m.time}</div>
-      </div>
-    `).join('');
-    container.scrollTop = container.scrollHeight;
-
-    document.getElementById('chatPanel').style.display = '';
+  /* ── Helpers ── */
+  function escHtml(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  document.getElementById('sendForm').addEventListener('submit', e => {
+  function formatTime(sentAt) {
+    if (!sentAt) return '';
+    const d = new Date(sentAt.replace(' ', 'T'));
+    return isNaN(d) ? sentAt : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function avatarHtml(name, photo, size = 40) {
+    if (photo) return `<img src="${escHtml(photo)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;">`;
+    const initial = (name || '?').charAt(0).toUpperCase();
+    return `<div class="inbox-avatar" style="width:${size}px;height:${size}px;font-size:${size * 0.4}px;flex-shrink:0;">${initial}</div>`;
+  }
+
+  /* ── Inbox ── */
+  async function loadInbox() {
+    const list = document.getElementById('inboxList');
+    const data = await apiGet('/api/messages.php?action=inbox');
+    const items = Array.isArray(data) ? data : [];
+
+    // Remove old inbox items (keep the empty notice)
+    list.querySelectorAll('.inbox-item').forEach(el => el.remove());
+
+    document.getElementById('inboxEmpty').style.display = items.length ? 'none' : 'block';
+
+    items.forEach(item => {
+      const otherId   = item.from_user_id == CURRENT_USER_ID ? item.to_user_id : item.from_user_id;
+      const otherName = item.other_name ?? 'Unknown';
+      const div = document.createElement('div');
+      div.className = 'inbox-item';
+      if (otherId == activeUserId) div.classList.add('active');
+      div.dataset.userId = otherId;
+      div.innerHTML = `
+        ${avatarHtml(otherName, item.other_photo, 40)}
+        <div class="inbox-info">
+          <div class="inbox-name">${escHtml(otherName)}</div>
+          <div class="inbox-preview">${escHtml(item.content ?? '')}</div>
+        </div>`;
+      div.addEventListener('click', () => openConversation(otherId, otherName, item.other_photo));
+      list.appendChild(div);
+    });
+
+    // If OPEN_WITH is set and not yet open, try to open from inbox data or fetch profile
+    if (OPEN_WITH && activeUserId === null) {
+      const found = items.find(item => {
+        const oid = item.from_user_id == CURRENT_USER_ID ? item.to_user_id : item.from_user_id;
+        return oid == OPEN_WITH;
+      });
+      if (found) {
+        const oid = found.from_user_id == CURRENT_USER_ID ? found.to_user_id : found.from_user_id;
+        openConversation(oid, found.other_name, found.other_photo);
+      } else {
+        // Fresh match — no messages yet; fetch the profile to get the name
+        const profile = await apiGet(`/api/users.php?action=profile&id=${OPEN_WITH}`);
+        openConversation(OPEN_WITH, profile?.name ?? 'New Match', profile?.profile_photo ?? null);
+      }
+    }
+  }
+
+  /* ── Open a conversation ── */
+  function openConversation(userId, name, photo) {
+    activeUserId = userId;
+
+    document.querySelectorAll('.inbox-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.userId == userId);
+    });
+
+    document.getElementById('chatHeader').innerHTML =
+      `${avatarHtml(name, photo, 36)}
+       <strong style="margin-left:10px;">${escHtml(name)}</strong>`;
+
+    document.getElementById('chatPanel').style.display = '';
+    loadMessages(userId);
+
+    clearInterval(pollTimer);
+    pollTimer = setInterval(() => loadMessages(userId), 5000);
+  }
+
+  /* ── Load messages for active conversation ── */
+  async function loadMessages(userId) {
+    if (userId !== activeUserId) return;
+    const msgs = await apiGet(`/api/messages.php?action=conversation&with=${userId}`);
+    if (!Array.isArray(msgs)) return;
+
+    const container = document.getElementById('chatMessages');
+    const atBottom  = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+
+    container.innerHTML = msgs.length
+      ? msgs.map(m => {
+          const self = m.from_user_id == CURRENT_USER_ID;
+          return `
+            <div style="display:flex;flex-direction:column;align-self:${self?'flex-end':'flex-start'};max-width:70%;">
+              <div class="msg-bubble ${self?'sent':'received'}">${escHtml(m.content)}</div>
+              <div class="msg-time" style="text-align:${self?'right':'left'}">${formatTime(m.sent_at)}</div>
+            </div>`;
+        }).join('')
+      : `<p style="color:var(--text-muted);text-align:center;margin-top:24px;font-size:13px;">No messages yet. Say hi!</p>`;
+
+    if (atBottom || msgs.length === 0) container.scrollTop = container.scrollHeight;
+  }
+
+  /* ── Send message ── */
+  document.getElementById('sendForm').addEventListener('submit', async e => {
     e.preventDefault();
     const input = document.getElementById('msgInput');
-    const msg = input.value.trim();
-    if (!msg) return;
+    const content = input.value.trim();
+    if (!content || !activeUserId) return;
+
+    input.value = '';
+
+    // Optimistic bubble
     const container = document.getElementById('chatMessages');
     const div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.flexDirection = 'column';
-    div.style.alignSelf = 'flex-end';
-    div.style.maxWidth = '70%';
-    div.innerHTML = `<div class="msg-bubble sent">${msg}</div><div class="msg-time" style="text-align:right">Just now</div>`;
+    div.style.cssText = 'display:flex;flex-direction:column;align-self:flex-end;max-width:70%;';
+    div.innerHTML = `<div class="msg-bubble sent">${escHtml(content)}</div><div class="msg-time" style="text-align:right">Just now</div>`;
     container.appendChild(div);
-    input.value = '';
     container.scrollTop = container.scrollHeight;
+
+    await apiPost('/api/messages.php', { action: 'send', to_user_id: activeUserId, content });
+
+    // Refresh inbox preview and real messages
+    loadInbox();
+    loadMessages(activeUserId);
   });
+
+  document.addEventListener('DOMContentLoaded', loadInbox);
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

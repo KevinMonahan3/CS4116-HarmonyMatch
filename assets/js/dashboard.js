@@ -56,8 +56,8 @@ document.addEventListener('DOMContentLoaded', loadMatches);
 async function doSwipe(toUserId, action, btn) {
     btn.disabled = true;
     const data = await apiPost('/api/matches.php', { action: 'swipe', to_user_id: toUserId, action_type: action });
-    if (data.is_match) {
-        alert("It's a match! 🎵 Start the conversation.");
-    }
     btn.closest('.match-card').remove();
+    if (data.is_match) {
+        window.location.href = `/chat.php?with=${toUserId}`;
+    }
 }
