@@ -69,7 +69,7 @@ if (!empty($_SESSION['user_id'])) {
     .divider-or span { font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
     .divider-or::before, .divider-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
     .input-wrap { position: relative; }
-    .input-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
+    .input-wrap > i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
     .input-wrap .field-input { padding-left: 40px; }
     .form-link { font-size: 13.5px; color: var(--accent-purple-light); cursor: pointer; }
     .form-link:hover { text-decoration: underline; }
@@ -144,6 +144,7 @@ if (!empty($_SESSION['user_id'])) {
             </div>
           </div>
           <!-- Line at bottom showing last commit made -->
+          <?php if ($latestCommit): ?>
           <div style="margin-top:32px;padding:12px 16px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);text-align:left;">
               <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">
                 <i class="fas fa-code-branch" style="margin-right:5px;"></i>Latest Commit
@@ -153,11 +154,12 @@ if (!empty($_SESSION['user_id'])) {
               </div>
               <div style="font-size:12px;color:var(--text-secondary);">
                   <code style="background:rgba(124,58,237,0.2);padding:1px 6px;border-radius:4px;font-size:11px;">
-                      <?= $latestCommit['sha'] ?>
+                      <?= htmlspecialchars($latestCommit['sha']) ?>
                   </code>
-                  &nbsp;<?= htmlspecialchars($latestCommit['author']) ?> · <?= $latestCommit['date'] ?>
+                  &nbsp;<?= htmlspecialchars($latestCommit['author']) ?> · <?= htmlspecialchars($latestCommit['date']) ?>
               </div>
           </div>
+          <?php endif; ?>
         </div>
       </div>
     </div>
