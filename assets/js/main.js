@@ -1,5 +1,16 @@
 // main.js — shared utilities loaded on every page
 
+// Highlight the correct bottom nav item for the current page
+document.addEventListener('DOMContentLoaded', function () {
+    const path = window.location.pathname;
+    document.querySelectorAll('.bottom-nav-item').forEach(function (item) {
+        const href = item.getAttribute('href');
+        if (href && (path === href || path.endsWith(href))) {
+            item.classList.add('active');
+        }
+    });
+});
+
 /**
  * Generic fetch wrapper that posts form data to a PHP API endpoint.
  * @param {string} url

@@ -30,3 +30,13 @@ $pageTitle = $pageTitle ?? 'HarmonyMatch';
     </div>
     <?php endif; ?>
 </nav>
+
+<?php if (!empty($_SESSION['user_id'])): ?>
+<nav class="hm-bottom-nav" aria-label="Main navigation">
+  <a href="<?= $baseUrl ?>/dashboard.php"   class="bottom-nav-item" data-nav="dashboard"><i class="fas fa-home"></i><span>Discover</span></a>
+  <a href="<?= $baseUrl ?>/search.php"      class="bottom-nav-item" data-nav="search"><i class="fas fa-search"></i><span>Search</span></a>
+  <a href="<?= $baseUrl ?>/likes.php"       class="bottom-nav-item" data-nav="likes"><i class="fas fa-heart"></i><span>Likes</span></a>
+  <a href="<?= $baseUrl ?>/chat.php"        class="bottom-nav-item" data-nav="chat"><i class="fas fa-comment"></i><span>Messages</span></a>
+  <a href="<?= $baseUrl ?>/profile-own.php" class="bottom-nav-item" data-nav="profile"><i class="fas fa-user"></i><span>Profile</span></a>
+</nav>
+<?php endif; ?>
