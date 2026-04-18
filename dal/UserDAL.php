@@ -336,8 +336,15 @@ class UserDAL {
 
         $sql = $this->baseUserSelect() . '
              WHERE u.user_id != ?
-               AND u.status = "active"';
-        $params = [(int)($filters['exclude_id'] ?? 0)];
+               AND u.status = "active"
+               AND NOT EXISTS (
+                    SELECT 1
+                    FROM blocks b
+                    WHERE (b.blocker_user_id = ? AND b.blocked_user_id = u.user_id)
+                       OR (b.blocker_user_id = u.user_id AND b.blocked_user_id = ?)
+               )';
+        $excludeId = (int)($filters['exclude_id'] ?? 0);
+        $params = [$excludeId, $excludeId, $excludeId];
 
         $query = trim((string)($filters['query'] ?? ''));
         if ($query !== '') {

@@ -1,5 +1,14 @@
 // search.js — search/discover page
 
+function escHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadGenres();
     loadResults();
@@ -23,15 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function buildCardPhoto(u) {
     if (u.profile_photo) {
-        return `<img src="${u.profile_photo}" alt="${u.name}">`;
+        return `<img src="${escHtml(u.profile_photo)}" alt="${escHtml(u.name)}">`;
     }
     if (u.top_artist) {
         return `<div class="artist-bg-card">
             <i class="fas fa-music"></i>
-            <span>${u.top_artist}</span>
+            <span>${escHtml(u.top_artist)}</span>
         </div>`;
     }
-    return `<div class="avatar-placeholder">${u.name.charAt(0)}</div>`;
+    return `<div class="avatar-placeholder">${escHtml(u.name.charAt(0))}</div>`;
 }
 
 async function loadResults() {
@@ -70,12 +79,14 @@ async function loadResults() {
                 <span class="compat-badge">${u.compatibility}%</span>
             </div>
             <div class="match-card-body">
-                <div class="match-card-name">${u.name}</div>
-                <div class="match-card-meta">${[u.age, u.location].filter(Boolean).join(' · ')}</div>
-                ${u.top_artist ? `<div class="top-artist-label"><i class="fas fa-music"></i> ${u.top_artist}</div>` : ''}
+                <div class="match-card-name">${escHtml(u.name)}</div>
+                <div class="match-card-meta">${escHtml([u.age, u.location].filter(Boolean).join(' · '))}</div>
+                ${u.top_artist ? `<div class="top-artist-label"><i class="fas fa-music"></i> ${escHtml(u.top_artist)}</div>` : ''}
+                ${u.match_reason ? `<div class="match-why">${escHtml(u.match_reason)}</div>` : ''}
+                ${u.shared_summary ? `<div class="match-summary">${escHtml(u.shared_summary)}</div>` : ''}
                 ${(u.genres || []).length ? `
                     <div class="tag-container" style="margin-top:10px;">
-                        ${(u.genres || []).slice(0, 3).map(g => `<span class="tag tag-purple">${g.name}</span>`).join('')}
+                        ${(u.genres || []).slice(0, 3).map(g => `<span class="tag tag-purple">${escHtml(g.name)}</span>`).join('')}
                     </div>
                 ` : ''}
             </div>
@@ -98,7 +109,8 @@ async function doSwipe(toUserId, action, btn) {
     btn.disabled = true;
     const data = await apiPost('/api/matches.php', { action: 'swipe', to_user_id: toUserId, action_type: action });
     if (data.is_match) {
-        alert("It's a match! 🎵 Start the conversation.");
+        window.location.href = `/chat.php?with=${toUserId}`;
+        return;
     }
     btn.closest('.match-card').remove();
 }

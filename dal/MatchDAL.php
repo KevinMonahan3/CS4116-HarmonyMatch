@@ -76,6 +76,41 @@ class MatchDAL {
         $stmt->execute([$userId]);
     }
 
+    public function blockUser(int $blockerUserId, int $blockedUserId, string $reasonCode = 'user_block'): bool {
+        if (!$this->db || $blockerUserId === $blockedUserId) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            'INSERT INTO blocks (blocker_user_id, blocked_user_id, reason_code, created_at)
+             SELECT ?, ?, ?, NOW()
+             FROM DUAL
+             WHERE NOT EXISTS (
+                 SELECT 1
+                 FROM blocks
+                 WHERE blocker_user_id = ? AND blocked_user_id = ?
+             )'
+        );
+
+        return $stmt->execute([$blockerUserId, $blockedUserId, $reasonCode, $blockerUserId, $blockedUserId]);
+    }
+
+    public function areUsersBlocked(int $userA, int $userB): bool {
+        if (!$this->db || $userA <= 0 || $userB <= 0) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*)
+             FROM blocks
+             WHERE (blocker_user_id = ? AND blocked_user_id = ?)
+                OR (blocker_user_id = ? AND blocked_user_id = ?)'
+        );
+        $stmt->execute([$userA, $userB, $userB, $userA]);
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
     public function createMatch(int $userA, int $userB): int {
         if (!$this->db) {
             return 0;
@@ -149,7 +184,8 @@ class MatchDAL {
                )
                AND NOT EXISTS (
                    SELECT 1 FROM blocks b
-                   WHERE b.blocker_user_id = ? AND b.blocked_user_id = u.user_id
+                   WHERE (b.blocker_user_id = ? AND b.blocked_user_id = u.user_id)
+                      OR (b.blocker_user_id = u.user_id AND b.blocked_user_id = ?)
                )
                AND NOT EXISTS (
                    SELECT 1 FROM matches m
@@ -167,7 +203,8 @@ class MatchDAL {
         $stmt->bindValue(3, $userId, PDO::PARAM_INT);
         $stmt->bindValue(4, $userId, PDO::PARAM_INT);
         $stmt->bindValue(5, $userId, PDO::PARAM_INT);
-        $stmt->bindValue(6, $limit, PDO::PARAM_INT);
+        $stmt->bindValue(6, $userId, PDO::PARAM_INT);
+        $stmt->bindValue(7, $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();
     }
@@ -185,6 +222,11 @@ class MatchDAL {
                  WHERE lk.actor_user_id = u.user_id AND lk.target_user_id = ?
              )
              AND NOT EXISTS (
+                 SELECT 1 FROM blocks b
+                 WHERE (b.blocker_user_id = ? AND b.blocked_user_id = u.user_id)
+                    OR (b.blocker_user_id = u.user_id AND b.blocked_user_id = ?)
+             )
+             AND NOT EXISTS (
                  SELECT 1 FROM matches m
                  WHERE m.status = "active"
                    AND (
@@ -195,7 +237,7 @@ class MatchDAL {
              AND u.status = "active"
              ORDER BY u.created_at DESC'
         );
-        $stmt->execute([$userId, $userId, $userId]);
+        $stmt->execute([$userId, $userId, $userId, $userId, $userId]);
         return $stmt->fetchAll();
     }
 

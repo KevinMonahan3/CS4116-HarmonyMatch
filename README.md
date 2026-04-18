@@ -55,7 +55,9 @@ CS4116-HarmonyMatch/
 2. Place project in `htdocs/harmonymatch/`
 3. Copy `config/db.local.example.php` to `config/db.local.php`
 4. Update `config/db.local.php` or set `DB_*` environment variables
-5. Visit `http://localhost/harmonymatch/`
+5. Visit `http://localhost/harmonymatch/` for local development
+
+Set `APP_FORCE_HTTPS=true` only after your server is actually serving HTTPS. Otherwise the app stays on the current request scheme, which keeps plain local or pre-SSL deployments working.
 
 `config/db.local.php` is gitignored, so real credentials stay local.
 

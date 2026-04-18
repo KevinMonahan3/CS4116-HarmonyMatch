@@ -1,16 +1,25 @@
 // dashboard.js — load and render match cards
 
+function escHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function buildCardPhoto(m) {
     if (m.profile_photo) {
-        return `<img src="${m.profile_photo}" alt="${m.name}">`;
+        return `<img src="${escHtml(m.profile_photo)}" alt="${escHtml(m.name)}">`;
     }
     if (m.top_artist) {
         return `<div class="artist-bg-card">
             <i class="fas fa-music"></i>
-            <span>${m.top_artist}</span>
+            <span>${escHtml(m.top_artist)}</span>
         </div>`;
     }
-    return `<div class="avatar-placeholder">${m.name.charAt(0)}</div>`;
+    return `<div class="avatar-placeholder">${escHtml(m.name.charAt(0))}</div>`;
 }
 
 async function loadMatches() {
@@ -32,9 +41,11 @@ async function loadMatches() {
                 <span class="compat-badge">${m.compatibility}%</span>
             </div>
             <div class="match-card-body">
-                <div class="match-card-name">${m.name}</div>
-                <div class="match-card-meta">${m.location ?? ''}</div>
-                ${m.top_artist ? `<div class="top-artist-label"><i class="fas fa-music"></i> ${m.top_artist}</div>` : ''}
+                <div class="match-card-name">${escHtml(m.name)}</div>
+                <div class="match-card-meta">${escHtml(m.location ?? '')}</div>
+                ${m.top_artist ? `<div class="top-artist-label"><i class="fas fa-music"></i> ${escHtml(m.top_artist)}</div>` : ''}
+                ${m.match_reason ? `<div class="match-why">${escHtml(m.match_reason)}</div>` : ''}
+                ${m.shared_summary ? `<div class="match-summary">${escHtml(m.shared_summary)}</div>` : ''}
             </div>
             <div class="match-card-actions">
                 <button class="action-btn pass-btn" onclick="doSwipe(${m.id}, 'skip', this)" title="Skip">

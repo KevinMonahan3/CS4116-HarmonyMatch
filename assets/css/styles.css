@@ -714,6 +714,24 @@ select.field-input option, select.form-input option {
 }
 .top-artist-label i { font-size: 11px; }
 
+.match-why {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.match-summary {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.spotify-embed-wrap {
+  width: 100%;
+}
+
 /* Avatar placeholder */
 .avatar-placeholder {
   width: 100%; height: 100%;
@@ -1052,6 +1070,54 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 6px 14px;
   font-size: 13px;
   margin-right: 6px;
+}
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-toolbar .form-group {
+  margin-bottom: 0;
+  min-width: 180px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.66);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 500;
+}
+
+.modal-backdrop.open {
+  display: flex;
+}
+
+.modal-card {
+  width: min(560px, 100%);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.modal-head h3 {
+  margin: 0;
 }
 
 /* ============================================================

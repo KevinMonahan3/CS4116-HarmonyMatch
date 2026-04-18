@@ -21,6 +21,9 @@ function music_config_value(string $key, mixed $default = null): mixed {
 }
 
 define('LASTFM_API_KEY', (string)music_config_value('LASTFM_API_KEY', ''));
+define('SPOTIFY_CLIENT_ID', (string)music_config_value('SPOTIFY_CLIENT_ID', ''));
+define('SPOTIFY_CLIENT_SECRET', (string)music_config_value('SPOTIFY_CLIENT_SECRET', ''));
+define('SPOTIFY_MARKET', (string)music_config_value('SPOTIFY_MARKET', 'IE'));
 define('MUSIC_HTTP_TIMEOUT', (int)music_config_value('MUSIC_HTTP_TIMEOUT', 5));
 define('MUSIC_CACHE_TTL', (int)music_config_value('MUSIC_CACHE_TTL', 86400));
 define(

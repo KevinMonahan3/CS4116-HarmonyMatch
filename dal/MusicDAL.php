@@ -66,7 +66,7 @@ class MusicDAL {
         return $stmt->fetchAll();
     }
 
-    public function addUserArtist(int $userId, string $artistName): void {
+    public function addUserArtist(int $userId, string $artistName, ?int $affinityWeight = null): void {
         if (!$this->db) {
             return;
         }
@@ -89,10 +89,10 @@ class MusicDAL {
 
         $stmt = $this->db->prepare(
             'INSERT INTO user_artists (user_id, artist_id, affinity_weight, created_at)
-             VALUES (?, ?, NULL, NOW())
-             ON DUPLICATE KEY UPDATE artist_id = VALUES(artist_id)'
+             VALUES (?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE affinity_weight = VALUES(affinity_weight)'
         );
-        $stmt->execute([$userId, (int)$artistId]);
+        $stmt->execute([$userId, (int)$artistId, $affinityWeight]);
     }
 
     public function replaceUserArtists(int $userId, array $artistNames): void {
@@ -103,8 +103,9 @@ class MusicDAL {
         $stmt = $this->db->prepare('DELETE FROM user_artists WHERE user_id = ?');
         $stmt->execute([$userId]);
 
+        $rank = 1;
         foreach ($artistNames as $artistName) {
-            $this->addUserArtist($userId, (string)$artistName);
+            $this->addUserArtist($userId, (string)$artistName, $rank++);
         }
     }
 
@@ -125,7 +126,7 @@ class MusicDAL {
         return $stmt->fetchAll();
     }
 
-    public function addUserSong(int $userId, string $title, string $artist): void {
+    public function addUserSong(int $userId, string $title, string $artist, ?int $preferenceRank = null): void {
         if (!$this->db) {
             return;
         }
@@ -158,10 +159,10 @@ class MusicDAL {
 
         $stmt = $this->db->prepare(
             'INSERT INTO user_songs (user_id, song_id, preference_rank, created_at)
-             VALUES (?, ?, NULL, NOW())
-             ON DUPLICATE KEY UPDATE song_id = VALUES(song_id)'
+             VALUES (?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE preference_rank = VALUES(preference_rank)'
         );
-        $stmt->execute([$userId, (int)$songId]);
+        $stmt->execute([$userId, (int)$songId, $preferenceRank]);
     }
 
     public function replaceUserSongs(int $userId, array $songs): void {
@@ -172,6 +173,7 @@ class MusicDAL {
         $stmt = $this->db->prepare('DELETE FROM user_songs WHERE user_id = ?');
         $stmt->execute([$userId]);
 
+        $rank = 1;
         foreach ($songs as $song) {
             if (!is_array($song)) {
                 continue;
@@ -183,7 +185,7 @@ class MusicDAL {
                 continue;
             }
 
-            $this->addUserSong($userId, $title, $artist);
+            $this->addUserSong($userId, $title, $artist, $rank++);
         }
     }
 }

@@ -34,6 +34,9 @@ $profile   = $userCtrl->getProfile($viewUserId);
 if (!$profile) { header('Location: /dashboard.php'); exit; }
 $myId  = (int)$_SESSION['user_id'];
 $score = $matchCtrl->computeCompatibility($myId, $viewUserId);
+$topSongTitle = (string)($profile['songs'][0]['title'] ?? '');
+$topSongArtist = (string)($profile['songs'][0]['artist'] ?? ($profile['artists'][0]['name'] ?? ''));
+$spotifySeedArtist = $topSongArtist !== '' ? $topSongArtist : (string)($profile['artists'][0]['name'] ?? '');
 
 $pageTitle = htmlspecialchars($profile['name']);
 include __DIR__ . '/includes/header.php';
@@ -106,6 +109,9 @@ include __DIR__ . '/includes/header.php';
         <button class="btn-primary" style="gap:8px;" onclick="swipe(<?= $viewUserId ?>, 'like')">
           <i class="fas fa-heart"></i> Like
         </button>
+        <button class="btn-outline" style="padding:10px 14px;color:var(--text-muted);" onclick="blockUser(<?= $viewUserId ?>)" title="Block user">
+          <i class="fas fa-user-slash"></i>
+        </button>
         <button class="btn-outline" style="padding:10px 14px;color:var(--text-muted);" onclick="reportUser(<?= $viewUserId ?>)" title="Report user">
           <i class="fas fa-flag"></i>
         </button>
@@ -144,6 +150,16 @@ include __DIR__ . '/includes/header.php';
       <?php endif; ?>
     </div>
 
+    <div class="hm-card" style="margin-top:16px;">
+      <h3>Listen To Their Vibe</h3>
+      <p style="color:var(--text-secondary);margin-bottom:14px;">Preview this match through a Spotify embed.</p>
+      <div id="spotifyEmbedBox"
+           data-track="<?= htmlspecialchars($topSongTitle) ?>"
+           data-artist="<?= htmlspecialchars($spotifySeedArtist) ?>">
+        <p style="color:var(--text-muted);font-size:13px;">Loading player…</p>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -179,8 +195,80 @@ function reportUser(userId) {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: `action=report&reported_id=${userId}&reason=${encodeURIComponent(reason)}`
-  }).then(() => alert('Report submitted. Thank you.'));
+  }).then(async res => {
+    const data = await res.json();
+    alert(data.success ? 'Report submitted. Thank you.' : `Error: ${data.error ?? 'Unable to submit report.'}`);
+  });
 }
+
+function blockUser(userId) {
+  if (!confirm('Block this user? They will no longer be able to interact with you.')) return;
+  fetch('/api/reports.php', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: `action=block&blocked_id=${userId}`
+  }).then(async res => {
+    const data = await res.json();
+    if (data.success) {
+      alert('User blocked.');
+      window.location = '/dashboard.php';
+      return;
+    }
+    alert(`Error: ${data.error ?? 'Unable to block user.'}`);
+  });
+}
+
+async function loadSpotifyEmbed() {
+  const box = document.getElementById('spotifyEmbedBox');
+  if (!box) return;
+
+  const track = box.dataset.track || '';
+  const artist = box.dataset.artist || '';
+  if (!track && !artist) {
+    box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No music data available for an embed yet.</p>';
+    return;
+  }
+
+  const params = new URLSearchParams({ action: 'spotify_embed', track, artist });
+  const data = await fetch('/api/music.php?' + params.toString()).then(r => r.json()).catch(() => null);
+  const result = data?.result;
+
+  if (!data?.success || !result) {
+    box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Spotify player could not be loaded.</p>';
+    return;
+  }
+
+  if (!result.configured) {
+    box.innerHTML = `
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:8px;">Spotify app credentials are not configured yet.</p>
+      <p style="color:var(--text-secondary);font-size:13px;">Add Spotify client credentials in <code>config/music.local.php</code> or VM environment variables to enable embeds.</p>`;
+    return;
+  }
+
+  if (!result.found || !result.embed_url) {
+    box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No Spotify match was found for this profile yet.</p>';
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="spotify-embed-wrap">
+      <iframe
+        src="${result.embed_url}"
+        width="100%"
+        height="${result.type === 'artist' ? '352' : '152'}"
+        frameborder="0"
+        allowfullscreen
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        style="border-radius:12px;">
+      </iframe>
+      <p style="margin-top:10px;color:var(--text-secondary);font-size:13px;">
+        ${result.title ? result.title : 'Spotify'}${result.subtitle ? ' · ' + result.subtitle : ''}
+      </p>
+    </div>`;
+}
+
+document.addEventListener('DOMContentLoaded', loadSpotifyEmbed);
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

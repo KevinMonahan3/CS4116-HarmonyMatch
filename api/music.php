@@ -25,6 +25,13 @@ switch ($action) {
         echo json_encode($ctrl->enrichArtist((string)($_GET['artist'] ?? $_POST['artist'] ?? '')));
         break;
 
+    case 'spotify_embed':
+        echo json_encode($ctrl->spotifyEmbed(
+            (string)($_GET['track'] ?? $_POST['track'] ?? ''),
+            (string)($_GET['artist'] ?? $_POST['artist'] ?? '')
+        ));
+        break;
+
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Unknown action']);
