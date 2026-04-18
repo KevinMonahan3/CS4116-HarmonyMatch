@@ -109,7 +109,7 @@ include __DIR__ . '/includes/header.php';
         ─────────────────────────────────────────────────────────
       -->
       <form class="chat-input-row" id="sendForm">
-        <input type="text" id="msgInput" class="form-input" placeholder="Type a message…" autocomplete="off">
+        <input type="text" id="msgInput" class="form-input" placeholder="Type a message…" autocomplete="off" maxlength="1000">
         <button type="submit" class="btn-primary">
           <i class="fas fa-paper-plane"></i>
         </button>
@@ -252,17 +252,13 @@ include __DIR__ . '/includes/header.php';
     const content = input.value.trim();
     if (!content || !activeUserId) return;
 
+    const response = await apiPost('/api/messages.php', { action: 'send', to_user_id: activeUserId, content });
+    if (!response || response.error) {
+      alert(response?.error ?? 'Unable to send message.');
+      return;
+    }
+
     input.value = '';
-
-    // Optimistic bubble
-    const container = document.getElementById('chatMessages');
-    const div = document.createElement('div');
-    div.style.cssText = 'display:flex;flex-direction:column;align-self:flex-end;max-width:70%;';
-    div.innerHTML = `<div class="msg-bubble sent">${escHtml(content)}</div><div class="msg-time" style="text-align:right">Just now</div>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-
-    await apiPost('/api/messages.php', { action: 'send', to_user_id: activeUserId, content });
 
     // Refresh inbox preview and real messages
     loadInbox();

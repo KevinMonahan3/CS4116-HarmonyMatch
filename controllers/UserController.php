@@ -57,13 +57,18 @@ class UserController {
                 continue;
             }
 
-            $compatibility = $this->matchController->computeCompatibility($currentUserId, (int)$user['id']);
+            $insights = $this->matchController->getCompatibilityInsights($currentUserId, (int)$user['id']);
+            $compatibility = (float)$insights['score'];
             if ($compatibility < $minCompatibility) {
                 continue;
             }
 
             $user['age'] = $age;
             $user['compatibility'] = $compatibility;
+            $user['match_reason'] = $insights['reason'];
+            $user['shared_summary'] = $insights['summary'];
+            $user['shared_genres'] = $insights['shared_genres'];
+            $user['shared_artists'] = $insights['shared_artists'];
             $user['genres'] = $this->musicDAL->getUserGenres((int)$user['id']);
             $user['top_artist'] = $this->musicDAL->getUserArtists((int)$user['id'])[0]['name'] ?? null;
             $filtered[] = $user;

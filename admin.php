@@ -27,22 +27,12 @@ AuthController::requireAdmin(); // Redirects non-admins to dashboard
   ─────────────────────────────────────────────────────────
 */
 
-// --- Placeholder data (remove once AdminController is wired) ---
-$users = [
-  ['id'=>1, 'name'=>'Alice Ryan',   'email'=>'alice@example.com',  'is_active'=>1, 'created_at'=>'2025-01-10'],
-  ['id'=>2, 'name'=>'Bob Walsh',    'email'=>'bob@example.com',    'is_active'=>1, 'created_at'=>'2025-01-12'],
-  ['id'=>3, 'name'=>'Carol Doyle',  'email'=>'carol@example.com',  'is_active'=>0, 'created_at'=>'2025-01-15'],
-  ['id'=>4, 'name'=>'Dan Murphy',   'email'=>'dan@example.com',    'is_active'=>1, 'created_at'=>'2025-01-18'],
-];
-$reports = [
-  ['id'=>1, 'reporter_name'=>'Alice Ryan', 'reported_name'=>'Bob Walsh', 'reason'=>'Inappropriate messages', 'created_at'=>'2025-02-01'],
-];
-
-/* Uncomment when controllers are ready:
 $ctrl    = new AdminController();
 $users   = $ctrl->getAllUsers();
-$reports = $ctrl->getPendingReports();
-*/
+$reportStatus = (string)($_GET['report_status'] ?? 'pending');
+$reportQuery = trim((string)($_GET['report_query'] ?? ''));
+$reports = $ctrl->getPendingReports($reportStatus, $reportQuery);
+$auditLogs = $ctrl->getAuditLogs(12);
 
 $pageTitle = 'Admin';
 include __DIR__ . '/includes/header.php';
@@ -136,6 +126,15 @@ include __DIR__ . '/includes/header.php';
                   <i class="fas fa-check"></i> Reactivate
                 </button>
               <?php endif; ?>
+              <button class="btn-outline" style="margin-left:4px;font-size:12px;padding:6px 10px;"
+                      onclick='editUserProfile(<?= json_encode([
+                        'id' => (int)$u['id'],
+                        'name' => (string)($u['name'] ?? ''),
+                        'bio' => (string)($u['bio'] ?? ''),
+                        'location' => (string)($u['location'] ?? ''),
+                      ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>)'>
+                <i class="fas fa-pen"></i>
+              </button>
               <a href="/profile.php?id=<?= $u['id'] ?>" class="btn-outline" style="margin-left:4px;font-size:12px;padding:6px 10px;">
                 <i class="fas fa-eye"></i>
               </a>
@@ -148,17 +147,36 @@ include __DIR__ . '/includes/header.php';
 
     <!-- Reports table -->
     <div class="hm-card" style="overflow-x:auto;">
-      <h3 style="margin-bottom:16px;">
-        Pending Reports
-        <?php if (count($reports)): ?>
-          <span class="badge badge-red" style="margin-left:8px;font-size:12px;"><?= count($reports) ?></span>
-        <?php endif; ?>
-      </h3>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+        <div>
+          <h3 style="margin-bottom:4px;">Reports</h3>
+          <p style="color:var(--text-secondary);font-size:13px;">Filter moderation queue and review recent activity.</p>
+        </div>
+        <form method="get" class="admin-toolbar">
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select name="report_status" class="form-input">
+              <option value="pending" <?= $reportStatus === 'pending' ? 'selected' : '' ?>>Open</option>
+              <option value="reviewing" <?= $reportStatus === 'reviewing' ? 'selected' : '' ?>>Reviewing</option>
+              <option value="resolved" <?= $reportStatus === 'resolved' ? 'selected' : '' ?>>Resolved</option>
+              <option value="dismissed" <?= $reportStatus === 'dismissed' ? 'selected' : '' ?>>Dismissed</option>
+              <option value="all" <?= $reportStatus === 'all' ? 'selected' : '' ?>>All</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Search</label>
+            <input type="text" name="report_query" class="form-input" value="<?= htmlspecialchars($reportQuery) ?>" placeholder="Reporter, reported, reason">
+          </div>
+          <div class="form-group">
+            <button class="btn-primary" type="submit"><i class="fas fa-filter"></i> Filter</button>
+          </div>
+        </form>
+      </div>
 
       <?php if (empty($reports)): ?>
         <div style="text-align:center;padding:32px 0;color:var(--text-muted);">
           <i class="fas fa-check-circle" style="font-size:28px;margin-bottom:10px;color:rgba(16,185,129,0.4);display:block;"></i>
-          No pending reports. All clear!
+          No reports match the current filters.
         </div>
       <?php else: ?>
         <table class="admin-table">
@@ -179,8 +197,9 @@ include __DIR__ . '/includes/header.php';
               <td><?= htmlspecialchars($r['reporter_name']) ?></td>
               <td style="font-weight:600;"><?= htmlspecialchars($r['reported_name']) ?></td>
               <td style="color:var(--text-secondary);max-width:240px;">
-                <?= htmlspecialchars($r['reason']) ?>
+                <?= htmlspecialchars($r['message'] ?: ucwords(str_replace('_', ' ', (string)$r['reason']))) ?>
               </td>
+              <td style="display:none;"><?= htmlspecialchars((string)$r['status']) ?></td>
               <td style="color:var(--text-secondary);"><?= htmlspecialchars($r['created_at']) ?></td>
               <td>
                 <!--
@@ -210,7 +229,73 @@ include __DIR__ . '/includes/header.php';
       <?php endif; ?>
     </div>
 
+    <div class="hm-card" style="margin-top:20px;overflow-x:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;">Recent Admin Activity</h3>
+        <span class="badge" style="font-size:12px;"><?= count($auditLogs) ?> entries</span>
+      </div>
+
+      <?php if (empty($auditLogs)): ?>
+        <p style="color:var(--text-muted);font-size:13px;">No audit log entries yet.</p>
+      <?php else: ?>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Admin</th>
+              <th>Action</th>
+              <th>Target</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php foreach ($auditLogs as $log): ?>
+            <tr>
+              <td style="color:var(--text-secondary);"><?= htmlspecialchars((string)$log['created_at']) ?></td>
+              <td><?= htmlspecialchars((string)($log['admin_name'] ?: 'Admin')) ?></td>
+              <td style="font-weight:600;"><?= htmlspecialchars((string)$log['action_type']) ?></td>
+              <td style="color:var(--text-secondary);">
+                <?= htmlspecialchars((string)$log['target_type']) ?> #<?= htmlspecialchars((string)$log['target_id']) ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
+    </div>
+
   </main>
+</div>
+
+<div class="modal-backdrop" id="editUserModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <h3>Edit User Profile</h3>
+        <p style="font-size:13px;color:var(--text-secondary);">Make moderation edits without leaving the dashboard.</p>
+      </div>
+      <button class="btn-outline" type="button" onclick="closeEditModal()">Close</button>
+    </div>
+
+    <form id="editUserForm">
+      <input type="hidden" name="user_id" id="editUserId">
+      <div class="form-group">
+        <label class="form-label">Display Name</label>
+        <input type="text" class="form-input" name="name" id="editUserName" maxlength="80" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location</label>
+        <input type="text" class="form-input" name="location" id="editUserLocation">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bio</label>
+        <textarea class="form-input" name="bio" id="editUserBio" rows="5" maxlength="1000"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn-outline" type="button" onclick="closeEditModal()">Cancel</button>
+        <button class="btn-primary" type="submit"><i class="fas fa-save"></i> Save Changes</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -249,6 +334,18 @@ include __DIR__ . '/includes/header.php';
       });
   }
 
+  function editUserProfile(user) {
+    document.getElementById('editUserId').value = user.id ?? '';
+    document.getElementById('editUserName').value = user.name ?? '';
+    document.getElementById('editUserLocation').value = user.location ?? '';
+    document.getElementById('editUserBio').value = user.bio ?? '';
+    document.getElementById('editUserModal').classList.add('open');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editUserModal').classList.remove('open');
+  }
+
   /* Simple client-side table filter */
   function filterTable(query) {
     const q    = query.toLowerCase();
@@ -257,6 +354,25 @@ include __DIR__ . '/includes/header.php';
       row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
   }
+
+  document.getElementById('editUserForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const body = new URLSearchParams(new FormData(e.target));
+    body.set('action', 'update_profile');
+
+    const res = await fetch('/api/admin.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body.toString()
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      window.location.reload();
+      return;
+    }
+    alert('Error: ' + (data.error ?? 'Unknown error'));
+  });
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

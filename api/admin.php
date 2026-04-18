@@ -26,13 +26,25 @@ switch ($action) {
         break;
 
     case 'reports':
-        echo json_encode($ctrl->getPendingReports());
+        echo json_encode($ctrl->getPendingReports(
+            (string)($_GET['status'] ?? $_POST['status'] ?? 'pending'),
+            (string)($_GET['query'] ?? $_POST['query'] ?? '')
+        ));
+        break;
+
+    case 'audit_logs':
+        echo json_encode($ctrl->getAuditLogs((int)($_GET['limit'] ?? $_POST['limit'] ?? 20)));
         break;
 
     case 'resolve_report':
         $reportId   = (int)($_POST['report_id'] ?? 0);
         $resolution = $_POST['resolution'] ?? 'dismissed';
         echo json_encode($ctrl->resolveReport($adminId, $reportId, $resolution));
+        break;
+
+    case 'update_profile':
+        $targetId = (int)($_POST['user_id'] ?? 0);
+        echo json_encode($ctrl->updateUserProfile($adminId, $targetId, $_POST));
         break;
 
     default:
