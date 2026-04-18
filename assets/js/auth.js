@@ -18,4 +18,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = adminLoginForm.querySelector('[name=email]').value;
+            const password = adminLoginForm.querySelector('[name=password]').value;
+
+            const data = await apiPost('/api/auth.php', { action: 'admin_login', email, password });
+            if (data.success) {
+                window.location = '/' + data.redirect;
+            } else {
+                const err = document.getElementById('adminLoginError');
+                err.textContent = data.error;
+                err.style.display = 'block';
+            }
+        });
+    }
 });
