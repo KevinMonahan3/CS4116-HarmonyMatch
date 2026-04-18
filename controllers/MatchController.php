@@ -34,8 +34,9 @@ class MatchController {
         $candidates = $this->matchDAL->getPotentialMatches($userId);
         $viewer = $this->userDAL->getUserById($userId);
         $viewerAge = $this->resolveAge($viewer);
+        $rankedCandidates = [];
         foreach ($candidates as &$candidate) {
-            if (!$this->passesPreferenceGate($viewer, $viewerAge, $candidate)) {
+            if (!$this->passesPreferenceGate($viewer, $viewerAge, $candidate, true)) {
                 continue;
             }
             $components = $this->computeComponents($userId, $candidate['id']);
@@ -57,9 +58,38 @@ class MatchController {
 
             $artists = $this->musicDAL->getUserArtists($candidate['id']);
             $candidate['top_artist'] = $artists[0]['name'] ?? null;
+            $rankedCandidates[] = $candidate;
         }
-        unset($candidate);
-        $candidates = array_values(array_filter($candidates, static fn(array $candidate): bool => isset($candidate['compatibility'])));
+
+        if ($rankedCandidates === []) {
+            foreach ($candidates as $candidate) {
+                if (!$this->passesPreferenceGate($viewer, $viewerAge, $candidate, false)) {
+                    continue;
+                }
+                $components = $this->computeComponents($userId, $candidate['id']);
+                $candidate['compatibility'] = round($components['final'] * 100, 1);
+                $candidate['shared_summary'] = $this->buildSharedSummary($components);
+                $candidate['match_reason'] = $this->buildMatchReason($components);
+                $candidate['shared_genres'] = array_slice($components['shared_genres'], 0, 3);
+                $candidate['shared_artists'] = array_slice($components['shared_artists'], 0, 3);
+                $candidate['age'] = $this->resolveAge($candidate);
+                $candidate['seeking_type'] = $candidate['seeking_type'] ?? 'dating';
+                $candidate['discovery_note'] = 'Relaxed queue based on your preferences';
+                $this->matchDAL->saveCompatibilityScore(
+                    $userId,
+                    $candidate['id'],
+                    $components['final'],
+                    $components['genre'],
+                    $components['artist'],
+                    $components['song']
+                );
+                $artists = $this->musicDAL->getUserArtists($candidate['id']);
+                $candidate['top_artist'] = $artists[0]['name'] ?? null;
+                $rankedCandidates[] = $candidate;
+            }
+        }
+
+        $candidates = $rankedCandidates;
         // Sort by compatibility descending
         usort($candidates, fn($a, $b) => $b['compatibility'] <=> $a['compatibility']);
         return $candidates;
@@ -250,10 +280,10 @@ class MatchController {
 
     public function isDiscoverEligible(int $viewerId, array $candidate): bool {
         $viewer = $this->userDAL->getUserById($viewerId);
-        return $this->passesPreferenceGate($viewer, $this->resolveAge($viewer), $candidate);
+        return $this->passesPreferenceGate($viewer, $this->resolveAge($viewer), $candidate, false);
     }
 
-    private function passesPreferenceGate(array|false $viewer, ?int $viewerAge, array $candidate): bool {
+    private function passesPreferenceGate(array|false $viewer, ?int $viewerAge, array $candidate, bool $requireMutual = true): bool {
         if (!$viewer) {
             return true;
         }
@@ -270,21 +300,21 @@ class MatchController {
         if (!$this->matchesDesiredGender((string)($viewer['desired_gender'] ?? 'everyone'), $candidateGender)) {
             return false;
         }
-        if (!$this->matchesDesiredGender((string)($candidateFull['desired_gender'] ?? 'everyone'), $viewerGender)) {
+        if ($requireMutual && !$this->matchesDesiredGender((string)($candidateFull['desired_gender'] ?? 'everyone'), $viewerGender)) {
             return false;
         }
 
         if (!$this->matchesAgePreference((int)($viewer['min_age_pref'] ?? 18), (int)($viewer['max_age_pref'] ?? 100), $candidateAge)) {
             return false;
         }
-        if (!$this->matchesAgePreference((int)($candidateFull['min_age_pref'] ?? 18), (int)($candidateFull['max_age_pref'] ?? 100), $viewerAge)) {
+        if ($requireMutual && !$this->matchesAgePreference((int)($candidateFull['min_age_pref'] ?? 18), (int)($candidateFull['max_age_pref'] ?? 100), $viewerAge)) {
             return false;
         }
 
         if (!$this->matchesLocationScope((string)($viewer['location_scope'] ?? 'anywhere'), (string)($viewer['location'] ?? ''), (string)($candidateFull['location'] ?? ''))) {
             return false;
         }
-        if (!$this->matchesLocationScope((string)($candidateFull['location_scope'] ?? 'anywhere'), (string)($candidateFull['location'] ?? ''), (string)($viewer['location'] ?? ''))) {
+        if ($requireMutual && !$this->matchesLocationScope((string)($candidateFull['location_scope'] ?? 'anywhere'), (string)($candidateFull['location'] ?? ''), (string)($viewer['location'] ?? ''))) {
             return false;
         }
 
