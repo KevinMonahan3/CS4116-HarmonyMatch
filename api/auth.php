@@ -14,6 +14,12 @@ switch ($action) {
         echo json_encode($auth->login($email, $password));
         break;
 
+    case 'admin_login':
+        $email    = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        echo json_encode($auth->loginAdmin($email, $password));
+        break;
+
     case 'register':
         $email    = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -24,8 +30,9 @@ switch ($action) {
         break;
 
     case 'logout':
+        $redirect = !empty($_SESSION['is_admin']) ? '/admin-login.php' : '/login.php';
         $auth->logout();
-        header('Location: /login.php');
+        header('Location: ' . $redirect);
         exit;
 
     default:

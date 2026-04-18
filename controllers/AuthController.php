@@ -62,6 +62,26 @@ class AuthController {
         return ['success' => true, 'redirect' => $redirect];
     }
 
+    public function loginAdmin(string $email, string $password): array {
+        $user = $this->userDAL->getUserByEmail($email);
+        if (!$user || !password_verify($password, $user['password_hash'])) {
+            return ['success' => false, 'error' => 'Invalid admin email or password'];
+        }
+        if (empty($user['is_active'])) {
+            return ['success' => false, 'error' => 'Account suspended'];
+        }
+        if (empty($user['is_admin'])) {
+            return ['success' => false, 'error' => 'This account does not have admin access'];
+        }
+
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_name'] = $user['name'] ?? $user['email'];
+        $_SESSION['is_admin'] = true;
+
+        return ['success' => true, 'redirect' => 'admin.php'];
+    }
+
     public function logout(): void {
         session_destroy();
     }
@@ -77,7 +97,10 @@ class AuthController {
 
     public static function requireAdmin(): void {
         if (!Database::isEnabled()) return; // DB not connected yet, skip auth
-        self::requireLogin();
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /admin-login.php');
+            exit;
+        }
         if (empty($_SESSION['is_admin'])) {
             header('Location: /dashboard.php');
             exit;
