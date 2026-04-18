@@ -1266,7 +1266,7 @@ input[type="range"]::-webkit-slider-thumb {
   .onboarding-container { margin-top: 24px; }
 }
 
-/* Chat back button — icon-only, no box styling */
+/* Chat back button — icon-only, mobile only */
 .chat-back-btn {
   display: none;
   background: none;
@@ -1282,6 +1282,9 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-tap-highlight-color: transparent;
 }
 .chat-back-btn:hover { color: var(--text-primary); }
+@media (min-width: 601px) {
+  .chat-back-btn { display: none !important; }
+}
 @media (max-width: 600px) {
   .chat-back-btn { display: flex; }
 }
@@ -1290,6 +1293,11 @@ input[type="range"]::-webkit-slider-thumb {
    BOTTOM NAVIGATION BAR (mobile only)
    ============================================================ */
 .hm-bottom-nav { display: none; }
+
+/* Explicitly hide on all screens wider than mobile — overrides any zoom/cascade issues */
+@media (min-width: 601px) {
+  .hm-bottom-nav { display: none !important; }
+}
 
 @media (max-width: 600px) {
   .hm-bottom-nav {
