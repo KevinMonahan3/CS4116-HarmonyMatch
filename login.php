@@ -1,23 +1,42 @@
 <?php
-// Line on login to show most recent commit
+// Fetch latest commit from GitHub, cached for 5 minutes to avoid rate-limiting
 $latestCommit = null;
-$ghRepo = 'KevinMonahan3/CS4116-HarmonyMatch';
-$ghApi  = "https://api.github.com/repos/{$ghRepo}/commits?per_page=1";
-$ctx    = stream_context_create(['http' => [
-    'header' => "User-Agent: HarmonyMatch\r\n",
-    'timeout' => 3,
-]]);
-$raw = @file_get_contents($ghApi, false, $ctx);
-if ($raw) {
-    $commits = json_decode($raw, true);
-    if (!empty($commits[0])) {
-        $c = $commits[0];
-        $latestCommit = [
-            'sha'     => substr($c['sha'], 0, 7),
-            'message' => strtok($c['commit']['message'], "\n"), // first line only
-            'author'  => $c['commit']['author']['name'],
-            'date'    => date('d M Y', strtotime($c['commit']['author']['date'])),
-        ];
+$cacheFile    = sys_get_temp_dir() . '/hm_latest_commit.json';
+$cacheTtl     = 300; // seconds
+
+if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTtl) {
+    // Serve from cache
+    $cached = @json_decode(file_get_contents($cacheFile), true);
+    if (!empty($cached['sha'])) {
+        $latestCommit = $cached;
+    }
+} else {
+    $ghRepo = 'KevinMonahan3/CS4116-HarmonyMatch';
+    $ghApi  = "https://api.github.com/repos/{$ghRepo}/commits?per_page=1";
+    $ctx    = stream_context_create(['http' => [
+        'header'  => "User-Agent: HarmonyMatch\r\n",
+        'timeout' => 4,
+    ]]);
+    $raw = @file_get_contents($ghApi, false, $ctx);
+    if ($raw) {
+        $commits = json_decode($raw, true);
+        if (!empty($commits[0])) {
+            $c = $commits[0];
+            $latestCommit = [
+                'sha'     => substr($c['sha'], 0, 7),
+                'message' => strtok($c['commit']['message'], "\n"),
+                'author'  => $c['commit']['author']['name'],
+                'date'    => date('d M Y', strtotime($c['commit']['author']['date'])),
+            ];
+            // Write to cache even if we already have one, so the TTL resets
+            @file_put_contents($cacheFile, json_encode($latestCommit));
+        }
+    } elseif (is_file($cacheFile)) {
+        // API failed but we have a stale cache — use it rather than showing nothing
+        $cached = @json_decode(file_get_contents($cacheFile), true);
+        if (!empty($cached['sha'])) {
+            $latestCommit = $cached;
+        }
     }
 }
 
