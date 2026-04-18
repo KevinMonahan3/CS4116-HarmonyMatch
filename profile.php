@@ -262,9 +262,16 @@ async function loadSpotifyEmbed() {
         loading="lazy"
         style="border-radius:12px;">
       </iframe>
-      <p style="margin-top:10px;color:var(--text-secondary);font-size:13px;">
-        ${result.title ? result.title : 'Spotify'}${result.subtitle ? ' · ' + result.subtitle : ''}
-      </p>
+      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <p style="margin:0;color:var(--text-secondary);font-size:13px;">
+          ${result.title ? result.title : 'Spotify'}${result.subtitle ? ' · ' + result.subtitle : ''}
+        </p>
+        ${result.spotify_url ? `
+          <a href="${result.spotify_url}" target="_blank" rel="noopener noreferrer" class="btn-outline" style="font-size:13px;padding:8px 12px;">
+            <i class="fab fa-spotify"></i> Open In Spotify
+          </a>
+        ` : ''}
+      </div>
     </div>`;
 }
 

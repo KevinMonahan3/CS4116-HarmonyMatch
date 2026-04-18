@@ -1,5 +1,6 @@
 # Database credentials (never commit real credentials)
 config/db.local.php
+config/music.local.php
 
 # Uploaded user images
 assets/img/*

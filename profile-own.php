@@ -35,6 +35,9 @@ $selectedGenreIds = array_map(
   static fn(array $genre): int => (int)($genre['id'] ?? 0),
   $profile['genres'] ?? []
 );
+$topOwnSongTitle = (string)($profile['songs'][0]['title'] ?? '');
+$topOwnSongArtist = (string)($profile['songs'][0]['artist'] ?? ($profile['artists'][0]['name'] ?? ''));
+$spotifyOwnSeedArtist = $topOwnSongArtist !== '' ? $topOwnSongArtist : (string)($profile['artists'][0]['name'] ?? '');
 
 $pageTitle = 'My Profile';
 include __DIR__ . '/includes/header.php';
@@ -181,6 +184,23 @@ include __DIR__ . '/includes/header.php';
       </form>
     </div>
 
+    <div class="hm-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div>
+          <h3 style="margin:0;">Spotify Preview</h3>
+          <p style="margin:6px 0 0;color:var(--text-secondary);font-size:13px;">See how your profile music will appear to other users.</p>
+        </div>
+        <a id="ownSpotifyLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-outline" style="display:none;">
+          <i class="fab fa-spotify"></i> Open In Spotify
+        </a>
+      </div>
+      <div id="ownSpotifyEmbedBox"
+           data-track="<?= htmlspecialchars($topOwnSongTitle) ?>"
+           data-artist="<?= htmlspecialchars($spotifyOwnSeedArtist) ?>">
+        <p style="color:var(--text-muted);font-size:13px;">Loading player…</p>
+      </div>
+    </div>
+
     <!-- Account / Danger zone -->
     <div class="hm-card">
       <h3>Account</h3>
@@ -277,6 +297,7 @@ include __DIR__ . '/includes/header.php';
             tags.splice(index, 1);
           }
           renderTags();
+          config.onChange?.([...tags]);
         });
         box.appendChild(tag);
       });
@@ -299,6 +320,7 @@ include __DIR__ . '/includes/header.php';
 
       tags.push(normalized);
       renderTags();
+      config.onChange?.([...tags]);
       input.value = '';
       hideSuggestions();
     }
@@ -420,6 +442,9 @@ include __DIR__ . '/includes/header.php';
 
     return {
       getValues: () => [...tags],
+      setOnChange: callback => {
+        config.onChange = callback;
+      },
     };
   }
 
@@ -449,6 +474,94 @@ include __DIR__ . '/includes/header.php';
       return preferredArtist ? { artist: preferredArtist } : {};
     },
   });
+
+  async function fetchSpotifyPreview(track, artist) {
+    const params = new URLSearchParams({ action: 'spotify_embed', track, artist });
+    const res = await fetch(`/api/music.php?${params.toString()}`);
+    return res.json();
+  }
+
+  function getPrimarySongSeed() {
+    const songs = profileSongManager.getValues();
+    const firstSong = songs[0] || '';
+    if (!firstSong) {
+      return { track: '', artist: '' };
+    }
+
+    const parts = firstSong.split(/\s+[–-]\s+/);
+    return {
+      track: (parts[0] || firstSong).trim(),
+      artist: (parts[1] || '').trim(),
+    };
+  }
+
+  async function updateOwnSpotifyPreview() {
+    const box = document.getElementById('ownSpotifyEmbedBox');
+    const link = document.getElementById('ownSpotifyLink');
+    if (!box || !link) return;
+
+    const seed = getPrimarySongSeed();
+    const artists = profileArtistManager.getValues();
+    const track = seed.track || box.dataset.track || '';
+    const artist = seed.artist || artists[0] || box.dataset.artist || '';
+
+    if (!track && !artist) {
+      box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Add a favourite artist or song to generate a Spotify preview.</p>';
+      link.style.display = 'none';
+      return;
+    }
+
+    box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Loading player…</p>';
+    const data = await fetchSpotifyPreview(track, artist).catch(() => null);
+    const result = data?.result;
+
+    if (!data?.success || !result) {
+      box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Spotify preview could not be loaded right now.</p>';
+      link.style.display = 'none';
+      return;
+    }
+
+    if (!result.configured) {
+      box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Spotify app credentials are not configured yet.</p>';
+      link.style.display = 'none';
+      return;
+    }
+
+    if (!result.found || !result.embed_url) {
+      box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No Spotify result found for your current music selection yet.</p>';
+      link.style.display = 'none';
+      return;
+    }
+
+    box.innerHTML = `
+      <div class="spotify-embed-wrap">
+        <iframe
+          src="${result.embed_url}"
+          width="100%"
+          height="${result.type === 'artist' ? '352' : '152'}"
+          frameborder="0"
+          allowfullscreen
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          style="border-radius:12px;">
+        </iframe>
+        <p style="margin-top:10px;color:var(--text-secondary);font-size:13px;">
+          ${result.title ? result.title : 'Spotify'}${result.subtitle ? ' · ' + result.subtitle : ''}
+        </p>
+      </div>
+    `;
+
+    if (result.spotify_url) {
+      link.href = result.spotify_url;
+      link.style.display = 'inline-flex';
+    } else {
+      link.style.display = 'none';
+    }
+  }
+
+  profileArtistManager.setOnChange(updateOwnSpotifyPreview);
+  profileSongManager.setOnChange(updateOwnSpotifyPreview);
+  document.addEventListener('DOMContentLoaded', updateOwnSpotifyPreview);
 
   document.getElementById('profileForm').addEventListener('submit', async e => {
     e.preventDefault();
