@@ -368,6 +368,18 @@ if (!empty($_SESSION['user_id'])) {
       return missing;
     }
 
+    function calculateAge(dob) {
+      if (!dob) return 0;
+      const birthDate = new Date(dob + 'T00:00:00');
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    }
+
     async function doRegister() {
       const firstName = document.getElementById('regFirstName').value.trim();
       const lastName  = document.getElementById('regLastName').value.trim();
@@ -386,6 +398,11 @@ if (!empty($_SESSION['user_id'])) {
       const pwErrors = getPwErrors(password);
       if (pwErrors.length > 0) {
         errEl.textContent = 'Password is missing: ' + pwErrors.join(', ') + '.';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (calculateAge(dob) < 18) {
+        errEl.textContent = 'You must be at least 18 years old to register.';
         errEl.style.display = 'block';
         return;
       }

@@ -18,6 +18,9 @@ class AuthController {
         if ($name === '') {
             return ['success' => false, 'error' => 'Name is required'];
         }
+        if (!$this->isAdult($dob)) {
+            return ['success' => false, 'error' => 'You must be at least 18 years old to register'];
+        }
         $pwErrors = [];
         if (strlen($password) < 8)            $pwErrors[] = 'at least 8 characters';
         if (!preg_match('/[A-Z]/', $password)) $pwErrors[] = 'an uppercase letter';
@@ -42,6 +45,22 @@ class AuthController {
         $_SESSION['is_admin'] = false;
 
         return ['success' => true, 'user_id' => $id];
+    }
+
+    private function isAdult(string $dob): bool {
+        $dob = trim($dob);
+        if ($dob === '') {
+            return false;
+        }
+
+        $birthDate = date_create($dob);
+        if ($birthDate === false) {
+            return false;
+        }
+
+        $today = new DateTimeImmutable('today');
+        $age = (int)$today->diff(DateTimeImmutable::createFromMutable($birthDate))->y;
+        return $age >= 18;
     }
 
     public function login(string $email, string $password): array {

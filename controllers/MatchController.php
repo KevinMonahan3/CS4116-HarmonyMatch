@@ -58,6 +58,9 @@ class MatchController {
 
             $artists = $this->musicDAL->getUserArtists($candidate['id']);
             $candidate['top_artist'] = $artists[0]['name'] ?? null;
+            $songs = $this->musicDAL->getUserSongs($candidate['id']);
+            $candidate['top_song_title'] = $songs[0]['title'] ?? '';
+            $candidate['spotify_seed_artist'] = $songs[0]['artist'] ?? ($artists[0]['name'] ?? '');
             $rankedCandidates[] = $candidate;
         }
 
@@ -85,6 +88,9 @@ class MatchController {
                 );
                 $artists = $this->musicDAL->getUserArtists($candidate['id']);
                 $candidate['top_artist'] = $artists[0]['name'] ?? null;
+                $songs = $this->musicDAL->getUserSongs($candidate['id']);
+                $candidate['top_song_title'] = $songs[0]['title'] ?? '';
+                $candidate['spotify_seed_artist'] = $songs[0]['artist'] ?? ($artists[0]['name'] ?? '');
                 $rankedCandidates[] = $candidate;
             }
         }

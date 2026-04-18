@@ -89,6 +89,16 @@ function renderCurrentCard() {
                         ${(current.shared_genres || []).map(genre => `<span class="tag tag-purple">${escHtml(genre)}</span>`).join('')}
                     </div>
                 ` : ''}
+                <div class="discover-vibe">
+                    <button class="btn-outline discover-vibe-toggle" type="button" onclick="toggleDiscoverVibe()">
+                        <i class="fab fa-spotify"></i> Hear Their Vibe
+                    </button>
+                    <div id="discoverVibeBox"
+                         class="discover-vibe-box"
+                         data-track="${escHtml(current.top_song_title || '')}"
+                         data-artist="${escHtml(current.spotify_seed_artist || '')}"
+                         style="display:none;"></div>
+                </div>
             </div>
             <div class="match-card-actions discover-actions">
                 <button class="action-btn pass-btn" onclick="doSwipe(${current.id}, 'skip', this)" title="Skip">
@@ -125,6 +135,66 @@ async function loadMatches() {
 }
 
 document.addEventListener('DOMContentLoaded', loadMatches);
+
+async function toggleDiscoverVibe() {
+    const box = document.getElementById('discoverVibeBox');
+    if (!box) return;
+
+    if (box.dataset.loaded === 'true') {
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+        return;
+    }
+
+    const track = box.dataset.track || '';
+    const artist = box.dataset.artist || '';
+    if (!track && !artist) {
+        box.style.display = 'block';
+        box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No music preview available for this profile yet.</p>';
+        box.dataset.loaded = 'true';
+        return;
+    }
+
+    box.style.display = 'block';
+    box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Loading Spotify preview…</p>';
+
+    const params = new URLSearchParams({ action: 'spotify_embed', track, artist });
+    const data = await fetch('/api/music.php?' + params.toString()).then(r => r.json()).catch(() => null);
+    const result = data?.result;
+
+    if (!data?.success || !result) {
+        box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Spotify preview could not be loaded.</p>';
+        box.dataset.loaded = 'true';
+        return;
+    }
+
+    if (!result.configured) {
+        box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Spotify preview is not configured on the server yet.</p>';
+        box.dataset.loaded = 'true';
+        return;
+    }
+
+    if (!result.found || !result.embed_url) {
+        box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No Spotify match was found for this profile yet.</p>';
+        box.dataset.loaded = 'true';
+        return;
+    }
+
+    box.innerHTML = `
+        <div class="spotify-embed-wrap">
+            <iframe
+                src="${result.embed_url}"
+                width="100%"
+                height="${result.type === 'artist' ? '352' : '152'}"
+                frameborder="0"
+                allowfullscreen
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                style="border-radius:12px;">
+            </iframe>
+        </div>
+    `;
+    box.dataset.loaded = 'true';
+}
 
 async function doSwipe(toUserId, action, btn) {
     btn.disabled = true;

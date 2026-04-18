@@ -1,11 +1,21 @@
 <?php
 
 $musicLocalConfig = [];
-$musicLocalConfigPath = __DIR__ . '/music.local.php';
-if (is_file($musicLocalConfigPath)) {
+$candidatePaths = array_filter([
+    getenv('MUSIC_CONFIG_PATH') ?: null,
+    __DIR__ . '/music.local.php',
+    '/etc/harmonymatch/music.local.php',
+    '/var/www/harmonymatch-shared/music.local.php',
+]);
+
+foreach ($candidatePaths as $musicLocalConfigPath) {
+    if (!is_file($musicLocalConfigPath)) {
+        continue;
+    }
+
     $loaded = require $musicLocalConfigPath;
     if (is_array($loaded)) {
-        $musicLocalConfig = $loaded;
+        $musicLocalConfig = array_merge($musicLocalConfig, $loaded);
     }
 }
 

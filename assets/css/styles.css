@@ -542,6 +542,20 @@ select.field-input option, select.form-input option {
   padding-top: 4px;
 }
 
+.discover-vibe {
+  margin-top: 16px;
+}
+
+.discover-vibe-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.discover-vibe-box {
+  margin-top: 12px;
+}
+
 .discover-empty {
   width: min(100%, 520px);
   text-align: center;
