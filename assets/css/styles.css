@@ -1149,17 +1149,20 @@ input[type="range"]::-webkit-slider-thumb {
 
 @media (max-width: 600px) {
   .hm-sidebar { display: none; }
+  /* Shrink layout to content so the chat page doesn't scroll to empty space */
+  .hm-layout { min-height: 0; }
   .hm-main { max-width: 100vw; padding: 16px; padding-bottom: 74px; }
   .auth-card { padding: 28px 20px; }
   .match-grid { grid-template-columns: 1fr; }
   .genre-grid { grid-template-columns: repeat(2, 1fr); }
-  /* Chat: fixed height fills space between navbar and bottom nav */
+  /* Chat: fill exactly the space between navbar and bottom nav — no overflow, no scroll gap */
   .chat-layout {
     flex-direction: column;
     height: calc(100vh - var(--navbar-h) - 58px);
     overflow: hidden;
+    padding-bottom: 0;
   }
-  /* Inbox fills all available height and scrolls internally */
+  /* Inbox fills all available height and scrolls only when needed */
   .chat-inbox {
     width: 100%;
     border-right: none;
@@ -1168,7 +1171,7 @@ input[type="range"]::-webkit-slider-thumb {
     flex: 1;
     overflow-y: auto;
   }
-  /* Panel hidden by default on mobile — CSS controls show/hide, no JS needed */
+  /* Panel hidden by default on mobile — CSS controls show/hide */
   .chat-panel { display: none; border-radius: var(--radius); }
 
   /* Conversation open: swap inbox out, panel in */
@@ -1192,10 +1195,24 @@ input[type="range"]::-webkit-slider-thumb {
   .onboarding-container { margin-top: 24px; }
 }
 
-/* Hide chat back button on tablets/desktop */
-.chat-back-btn { display: none !important; }
+/* Chat back button — icon-only, no box styling */
+.chat-back-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  padding: 0 10px 0 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.chat-back-btn:hover { color: var(--text-primary); }
 @media (max-width: 600px) {
-  .chat-back-btn { display: inline-flex !important; }
+  .chat-back-btn { display: flex; }
 }
 
 /* ============================================================

@@ -69,7 +69,7 @@ if (!empty($_SESSION['user_id'])) {
     .divider-or span { font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
     .divider-or::before, .divider-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
     .input-wrap { position: relative; }
-    .input-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
+    .input-wrap > i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
     .input-wrap .field-input { padding-left: 40px; }
     .form-link { font-size: 13.5px; color: var(--accent-purple-light); cursor: pointer; }
     .form-link:hover { text-decoration: underline; }
@@ -83,6 +83,18 @@ if (!empty($_SESSION['user_id'])) {
     .pw-req:last-child { margin-bottom:0; }
     .pw-req.met { color:#10b981; }
     .pw-req i { font-size:11px; width:12px; }
+    /* Password visibility toggle */
+    .pw-toggle {
+      position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      background:none; border:none; color:var(--text-muted); font-size:14px;
+      cursor:pointer; padding:4px; line-height:1;
+      -webkit-tap-highlight-color:transparent; transition:color 0.15s;
+    }
+    .pw-toggle:hover { color:var(--text-secondary); }
+    .input-wrap.has-toggle .field-input { padding-right: 40px; }
+    /* Mobile-only logo above the auth card */
+    .mobile-auth-logo { display:none; align-items:center; justify-content:center; gap:10px; margin-bottom:28px; }
+    @media (max-width:900px) { .mobile-auth-logo { display:flex; } }
   </style>
 </head>
 <body>
@@ -132,6 +144,7 @@ if (!empty($_SESSION['user_id'])) {
             </div>
           </div>
           <!-- Line at bottom showing last commit made -->
+          <?php if ($latestCommit): ?>
           <div style="margin-top:32px;padding:12px 16px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);text-align:left;">
               <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">
                 <i class="fas fa-code-branch" style="margin-right:5px;"></i>Latest Commit
@@ -141,11 +154,12 @@ if (!empty($_SESSION['user_id'])) {
               </div>
               <div style="font-size:12px;color:var(--text-secondary);">
                   <code style="background:rgba(124,58,237,0.2);padding:1px 6px;border-radius:4px;font-size:11px;">
-                      <?= $latestCommit['sha'] ?>
+                      <?= htmlspecialchars($latestCommit['sha']) ?>
                   </code>
-                  &nbsp;<?= htmlspecialchars($latestCommit['author']) ?> · <?= $latestCommit['date'] ?>
+                  &nbsp;<?= htmlspecialchars($latestCommit['author']) ?> · <?= htmlspecialchars($latestCommit['date']) ?>
               </div>
           </div>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -153,6 +167,11 @@ if (!empty($_SESSION['user_id'])) {
     <!-- Right auth panel -->
     <div class="auth-right">
       <div class="auth-card">
+
+        <div class="mobile-auth-logo">
+          <div class="logo-icon"><i class="fas fa-music"></i></div>
+          <span class="logo-text" style="font-size:22px;">HarmonyMatch</span>
+        </div>
 
         <div style="margin-bottom:32px;">
           <h1 id="formTitle" style="font-size:26px;font-weight:800;letter-spacing:-0.4px;">Welcome back</h1>
@@ -177,9 +196,10 @@ if (!empty($_SESSION['user_id'])) {
           </div>
           <div class="field">
             <label class="field-label">Password</label>
-            <div class="input-wrap">
+            <div class="input-wrap has-toggle">
               <i class="fas fa-lock"></i>
               <input class="field-input" type="password" id="loginPassword" placeholder="••••••••" />
+              <button type="button" class="pw-toggle" onclick="togglePw('loginPassword', this)" aria-label="Toggle password visibility"><i class="fas fa-eye"></i></button>
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
@@ -230,9 +250,10 @@ if (!empty($_SESSION['user_id'])) {
           </div>
           <div class="field">
             <label class="field-label">Password</label>
-            <div class="input-wrap">
+            <div class="input-wrap has-toggle">
               <i class="fas fa-lock"></i>
               <input class="field-input" type="password" id="regPassword" placeholder="Create a password" oninput="checkPwReqs()" />
+              <button type="button" class="pw-toggle" onclick="togglePw('regPassword', this)" aria-label="Toggle password visibility"><i class="fas fa-eye"></i></button>
             </div>
             <div class="pw-reqs">
               <div class="pw-reqs-title">Password must have:</div>
@@ -244,9 +265,10 @@ if (!empty($_SESSION['user_id'])) {
           </div>
           <div class="field">
             <label class="field-label">Confirm Password</label>
-            <div class="input-wrap">
+            <div class="input-wrap has-toggle">
               <i class="fas fa-lock"></i>
               <input class="field-input" type="password" id="regConfirm" placeholder="Re-enter password" />
+              <button type="button" class="pw-toggle" onclick="togglePw('regConfirm', this)" aria-label="Toggle password visibility"><i class="fas fa-eye"></i></button>
             </div>
           </div>
           <label class="check-row" style="margin-bottom:20px;">
@@ -265,6 +287,18 @@ if (!empty($_SESSION['user_id'])) {
   </div>
 
   <script>
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon  = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+
     function switchTab(tab) {
       document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
       document.getElementById('reg-form').style.display   = tab === 'reg'   ? 'block' : 'none';
