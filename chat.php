@@ -220,6 +220,10 @@ include __DIR__ . '/includes/header.php';
   /* ── Back to inbox (mobile) ── */
   function showInbox() {
     document.querySelector('.chat-layout').classList.remove('mobile-panel-open');
+    // Clear inline display style so the CSS display:none rule takes over and hides the panel
+    document.getElementById('chatPanel').style.display = '';
+    activeUserId = null;
+    clearInterval(pollTimer);
   }
 
   /* ── Load messages for active conversation ── */

@@ -1153,31 +1153,30 @@ input[type="range"]::-webkit-slider-thumb {
   .auth-card { padding: 28px 20px; }
   .match-grid { grid-template-columns: 1fr; }
   .genre-grid { grid-template-columns: repeat(2, 1fr); }
-  /* Chat: inbox-only view — let the page scroll naturally */
+  /* Chat: fixed height fills space between navbar and bottom nav */
   .chat-layout {
     flex-direction: column;
-    height: auto;
-    overflow: visible;   /* override the base overflow:hidden so nothing is clipped */
+    height: calc(100vh - var(--navbar-h) - 58px);
+    overflow: hidden;
   }
+  /* Inbox fills all available height and scrolls internally */
   .chat-inbox {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid var(--border);
-    border-radius: var(--radius) var(--radius) 0 0;
-    padding-bottom: 74px; /* clear fixed bottom nav */
+    border-bottom: none;
+    border-radius: var(--radius);
+    flex: 1;
+    overflow-y: auto;
   }
-  .chat-panel { border-radius: 0 0 var(--radius) var(--radius); }
+  /* Panel hidden by default on mobile — CSS controls show/hide, no JS needed */
+  .chat-panel { display: none; border-radius: var(--radius); }
 
-  /* Chat: conversation view — fill the viewport between navbar and bottom nav */
-  .chat-layout.mobile-panel-open {
-    height: calc(100vh - var(--navbar-h) - 58px);
-    overflow: hidden;   /* re-enable clipping so messages scroll inside the bounded box */
-  }
+  /* Conversation open: swap inbox out, panel in */
   .chat-layout.mobile-panel-open .chat-inbox { display: none; }
   .chat-layout.mobile-panel-open .chat-panel {
     display: flex !important;
     flex: 1;
-    min-height: 0;      /* allow flex child to shrink below its content size */
+    min-height: 0;
     border-radius: var(--radius);
   }
 
