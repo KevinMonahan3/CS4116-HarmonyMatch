@@ -1153,13 +1153,33 @@ input[type="range"]::-webkit-slider-thumb {
   .auth-card { padding: 28px 20px; }
   .match-grid { grid-template-columns: 1fr; }
   .genre-grid { grid-template-columns: repeat(2, 1fr); }
-  .chat-layout { flex-direction: column; height: auto; min-height: calc(100vh - var(--navbar-h) - 58px); }
-  .chat-inbox { width: 100%; border-right: none; border-bottom: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; }
-  .chat-panel { border-radius: 0 0 var(--radius) var(--radius); min-height: 420px; }
+  /* Chat: inbox-only view — let the page scroll naturally */
+  .chat-layout {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;   /* override the base overflow:hidden so nothing is clipped */
+  }
+  .chat-inbox {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding-bottom: 74px; /* clear fixed bottom nav */
+  }
+  .chat-panel { border-radius: 0 0 var(--radius) var(--radius); }
 
-  /* Chat: hide inbox when conversation is open on mobile */
+  /* Chat: conversation view — fill the viewport between navbar and bottom nav */
+  .chat-layout.mobile-panel-open {
+    height: calc(100vh - var(--navbar-h) - 58px);
+    overflow: hidden;   /* re-enable clipping so messages scroll inside the bounded box */
+  }
   .chat-layout.mobile-panel-open .chat-inbox { display: none; }
-  .chat-layout.mobile-panel-open .chat-panel { display: flex !important; border-radius: var(--radius); }
+  .chat-layout.mobile-panel-open .chat-panel {
+    display: flex !important;
+    flex: 1;
+    min-height: 0;      /* allow flex child to shrink below its content size */
+    border-radius: var(--radius);
+  }
 
   /* Search filters: stack full-width */
   .filter-row { gap: 12px; }

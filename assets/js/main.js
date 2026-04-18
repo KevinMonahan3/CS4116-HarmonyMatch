@@ -4,10 +4,14 @@
 document.addEventListener('DOMContentLoaded', function () {
     const path = window.location.pathname;
     document.querySelectorAll('.bottom-nav-item').forEach(function (item) {
-        const href = item.getAttribute('href');
-        if (href && (path === href || path.endsWith(href))) {
-            item.classList.add('active');
-        }
+        try {
+            // href may be an absolute URL (e.g. http://localhost/dashboard.php)
+            // so extract just the pathname for comparison
+            const itemPath = new URL(item.getAttribute('href'), window.location.origin).pathname;
+            if (path === itemPath) {
+                item.classList.add('active');
+            }
+        } catch (e) {}
     });
 });
 
