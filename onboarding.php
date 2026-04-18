@@ -11,7 +11,9 @@ require_once __DIR__ . '/dal/MusicDAL.php';
 AuthController::requireLogin();
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
-$profile = (new UserController())->getProfile($userId) ?: [];
+$userCtrl = new UserController();
+$profile = $userCtrl->getProfile($userId) ?: [];
+$genders = $userCtrl->getGenderOptions();
 $genres = (new MusicDAL())->getAllGenres();
 $selectedGenreIds = array_map(
     static fn(array $genre): int => (int)($genre['id'] ?? 0),
@@ -57,6 +59,18 @@ include __DIR__ . '/includes/header.php';
       </div>
 
       <div class="form-group">
+        <label class="form-label">Gender</label>
+        <select name="gender" class="form-input" required>
+          <option value="">Select gender</option>
+          <?php foreach ($genders as $gender): ?>
+            <option value="<?= htmlspecialchars((string)$gender['name']) ?>" <?= (string)($profile['gender'] ?? '') === (string)$gender['name'] ? 'selected' : '' ?>>
+              <?= htmlspecialchars(ucwords(str_replace('_', ' ', (string)$gender['name']))) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label class="form-label">Location</label>
         <div style="position:relative;">
           <i class="fas fa-map-marker-alt" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
@@ -70,6 +84,51 @@ include __DIR__ . '/includes/header.php';
         <label class="form-label">Bio <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
         <textarea name="bio" class="form-input" rows="3"
                   placeholder="Tell potential matches a little about yourself…"><?= htmlspecialchars((string)($profile['bio'] ?? '')) ?></textarea>
+      </div>
+
+      <div class="hm-card" style="background:rgba(255,255,255,0.02);margin-bottom:18px;">
+        <h3 style="margin-bottom:8px;">Dating Preferences</h3>
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:18px;">These preferences shape your Discover queue. Search will still let you browse more widely inside those boundaries.</p>
+
+        <div class="form-group">
+          <label class="form-label">Interested In</label>
+          <select name="desired_gender" class="form-input">
+            <option value="everyone" <?= ($profile['desired_gender'] ?? 'everyone') === 'everyone' ? 'selected' : '' ?>>Everyone</option>
+            <option value="male" <?= ($profile['desired_gender'] ?? '') === 'male' ? 'selected' : '' ?>>Men</option>
+            <option value="female" <?= ($profile['desired_gender'] ?? '') === 'female' ? 'selected' : '' ?>>Women</option>
+            <option value="non_binary" <?= ($profile['desired_gender'] ?? '') === 'non_binary' ? 'selected' : '' ?>>Non-binary people</option>
+            <option value="other" <?= ($profile['desired_gender'] ?? '') === 'other' ? 'selected' : '' ?>>Other genders</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Looking For</label>
+          <select name="seeking_type" class="form-input">
+            <option value="dating" <?= ($profile['seeking_type'] ?? 'dating') === 'dating' ? 'selected' : '' ?>>Dating</option>
+            <option value="friendship" <?= ($profile['seeking_type'] ?? '') === 'friendship' ? 'selected' : '' ?>>Friendship</option>
+            <option value="music_buddy" <?= ($profile['seeking_type'] ?? '') === 'music_buddy' ? 'selected' : '' ?>>Music Buddy</option>
+            <option value="networking" <?= ($profile['seeking_type'] ?? '') === 'networking' ? 'selected' : '' ?>>Networking</option>
+          </select>
+        </div>
+
+        <div class="filter-row">
+          <div class="form-group">
+            <label class="form-label">Preferred Min Age</label>
+            <input type="number" name="min_age_pref" class="form-input" min="18" max="100" value="<?= htmlspecialchars((string)($profile['min_age_pref'] ?? 18)) ?>">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preferred Max Age</label>
+            <input type="number" name="max_age_pref" class="form-input" min="18" max="100" value="<?= htmlspecialchars((string)($profile['max_age_pref'] ?? 40)) ?>">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location Range</label>
+            <select name="location_scope" class="form-input">
+              <option value="anywhere" <?= ($profile['location_scope'] ?? 'anywhere') === 'anywhere' ? 'selected' : '' ?>>Anywhere</option>
+              <option value="same_country" <?= ($profile['location_scope'] ?? '') === 'same_country' ? 'selected' : '' ?>>Same country</option>
+              <option value="same_city" <?= ($profile['location_scope'] ?? '') === 'same_city' ? 'selected' : '' ?>>Same city</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <p id="step1Error" style="color:#ef4444;font-size:13.5px;margin-bottom:12px;display:none;"></p>

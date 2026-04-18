@@ -27,7 +27,7 @@ include __DIR__ . '/includes/header.php';
 
     <div class="section-header">
       <h2 class="section-title">Find Someone</h2>
-      <p class="section-subtitle">Filter by age, vibe, and musical taste</p>
+      <p class="section-subtitle">Browse profiles that already fit your discovery preferences, then narrow further.</p>
     </div>
 
     <!-- Filter bar -->
@@ -54,6 +54,13 @@ include __DIR__ . '/includes/header.php';
           <label class="form-label">Genre</label>
           <select id="genreFilter" class="form-input">
             <option value="">Any genre</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Gender</label>
+          <select id="genderFilter" class="form-input">
+            <option value="">Any gender</option>
           </select>
         </div>
 

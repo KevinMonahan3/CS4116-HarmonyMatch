@@ -30,6 +30,7 @@ $profile = $ctrl->getProfile($userId) ?: [
   'genres'        => [],
   'artists'       => [],
 ];
+$genders = $ctrl->getGenderOptions();
 $genres = (new MusicDAL())->getAllGenres();
 $selectedGenreIds = array_map(
   static fn(array $genre): int => (int)($genre['id'] ?? 0),
@@ -133,6 +134,72 @@ include __DIR__ . '/includes/header.php';
 
         </form>
       </div>
+    </div>
+
+    <div id="preferences" class="hm-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;">Dating Preferences</h3>
+        <span style="font-size:13px;color:var(--text-secondary);">Discover uses these rules before it ranks people by music match.</span>
+      </div>
+
+      <form id="preferencesForm">
+        <div class="filter-row">
+          <div class="form-group">
+            <label class="form-label">My Gender</label>
+            <select name="gender" class="form-input">
+              <option value="">Select gender</option>
+              <?php foreach ($genders as $gender): ?>
+                <option value="<?= htmlspecialchars((string)$gender['name']) ?>" <?= (string)($profile['gender'] ?? '') === (string)$gender['name'] ? 'selected' : '' ?>>
+                  <?= htmlspecialchars(ucwords(str_replace('_', ' ', (string)$gender['name']))) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Interested In</label>
+            <select name="desired_gender" class="form-input">
+              <option value="everyone" <?= ($profile['desired_gender'] ?? 'everyone') === 'everyone' ? 'selected' : '' ?>>Everyone</option>
+              <option value="male" <?= ($profile['desired_gender'] ?? '') === 'male' ? 'selected' : '' ?>>Men</option>
+              <option value="female" <?= ($profile['desired_gender'] ?? '') === 'female' ? 'selected' : '' ?>>Women</option>
+              <option value="non_binary" <?= ($profile['desired_gender'] ?? '') === 'non_binary' ? 'selected' : '' ?>>Non-binary people</option>
+              <option value="other" <?= ($profile['desired_gender'] ?? '') === 'other' ? 'selected' : '' ?>>Other genders</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Looking For</label>
+            <select name="seeking_type" class="form-input">
+              <option value="dating" <?= ($profile['seeking_type'] ?? 'dating') === 'dating' ? 'selected' : '' ?>>Dating</option>
+              <option value="friendship" <?= ($profile['seeking_type'] ?? '') === 'friendship' ? 'selected' : '' ?>>Friendship</option>
+              <option value="music_buddy" <?= ($profile['seeking_type'] ?? '') === 'music_buddy' ? 'selected' : '' ?>>Music Buddy</option>
+              <option value="networking" <?= ($profile['seeking_type'] ?? '') === 'networking' ? 'selected' : '' ?>>Networking</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <div class="form-group">
+            <label class="form-label">Preferred Min Age</label>
+            <input type="number" name="min_age_pref" class="form-input" min="18" max="100" value="<?= htmlspecialchars((string)($profile['min_age_pref'] ?? 18)) ?>">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preferred Max Age</label>
+            <input type="number" name="max_age_pref" class="form-input" min="18" max="100" value="<?= htmlspecialchars((string)($profile['max_age_pref'] ?? 40)) ?>">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location Scope</label>
+            <select name="location_scope" class="form-input">
+              <option value="anywhere" <?= ($profile['location_scope'] ?? 'anywhere') === 'anywhere' ? 'selected' : '' ?>>Anywhere</option>
+              <option value="same_country" <?= ($profile['location_scope'] ?? '') === 'same_country' ? 'selected' : '' ?>>Same country</option>
+              <option value="same_city" <?= ($profile['location_scope'] ?? '') === 'same_city' ? 'selected' : '' ?>>Same city</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="preferencesMsg" style="display:none;font-size:13.5px;margin-bottom:12px;"></p>
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-sliders-h"></i> Save Dating Preferences
+        </button>
+      </form>
     </div>
 
     <!-- Music preferences summary -->
@@ -575,6 +642,22 @@ include __DIR__ . '/includes/header.php';
     msgEl.style.color   = json.success ? '#10b981' : '#ef4444';
     msgEl.textContent   = json.success ? 'Profile saved.' : (json.error || 'Unable to save profile.');
     setTimeout(() => msgEl.style.display = 'none', 3000);
+  });
+
+  document.getElementById('preferencesForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msgEl = document.getElementById('preferencesMsg');
+    const data = new URLSearchParams(new FormData(e.target));
+    data.append('action', 'update_profile');
+
+    const res = await fetch('/api/users.php', { method: 'POST', body: data });
+    const json = await res.json();
+    msgEl.style.display = 'block';
+    msgEl.style.color = json.success ? '#10b981' : '#ef4444';
+    msgEl.textContent = json.success ? 'Dating preferences saved.' : (json.error || 'Unable to save dating preferences.');
+    setTimeout(() => {
+      msgEl.style.display = 'none';
+    }, 3000);
   });
 
   document.getElementById('musicProfileForm').addEventListener('submit', async e => {

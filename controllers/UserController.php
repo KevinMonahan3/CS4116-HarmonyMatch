@@ -24,6 +24,10 @@ class UserController {
         return $user;
     }
 
+    public function getGenderOptions(): array {
+        return $this->userDAL->getAllGenders();
+    }
+
     public function searchLocations(string $query): array {
         $query = trim($query);
         if ($query === '') {
@@ -41,6 +45,7 @@ class UserController {
             'exclude_id' => $currentUserId,
             'query' => trim((string)($filters['query'] ?? '')),
             'genre_id' => (int)($filters['genre_id'] ?? 0),
+            'gender' => trim((string)($filters['gender'] ?? '')),
         ]);
 
         $minAge = max(18, (int)($filters['min_age'] ?? 18));
@@ -62,6 +67,9 @@ class UserController {
             if ($compatibility < $minCompatibility) {
                 continue;
             }
+            if (!$this->matchController->isDiscoverEligible($currentUserId, $user)) {
+                continue;
+            }
 
             $user['age'] = $age;
             $user['compatibility'] = $compatibility;
@@ -80,7 +88,19 @@ class UserController {
     }
 
     public function updateProfile(int $userId, array $data): array {
-        $allowed = ['name', 'bio', 'location', 'profile_photo', 'dob', 'gender'];
+        $allowed = [
+            'name',
+            'bio',
+            'location',
+            'profile_photo',
+            'dob',
+            'gender',
+            'desired_gender',
+            'seeking_type',
+            'min_age_pref',
+            'max_age_pref',
+            'location_scope',
+        ];
         $filtered = array_intersect_key($data, array_flip($allowed));
 
         if (!empty($filtered['name']) && strlen(trim((string)$filtered['name'])) > 80) {

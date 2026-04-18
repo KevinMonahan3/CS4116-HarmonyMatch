@@ -32,13 +32,20 @@ class MatchController {
 
     public function getDashboardMatches(int $userId): array {
         $candidates = $this->matchDAL->getPotentialMatches($userId);
+        $viewer = $this->userDAL->getUserById($userId);
+        $viewerAge = $this->resolveAge($viewer);
         foreach ($candidates as &$candidate) {
+            if (!$this->passesPreferenceGate($viewer, $viewerAge, $candidate)) {
+                continue;
+            }
             $components = $this->computeComponents($userId, $candidate['id']);
             $candidate['compatibility'] = round($components['final'] * 100, 1);
             $candidate['shared_summary'] = $this->buildSharedSummary($components);
             $candidate['match_reason'] = $this->buildMatchReason($components);
             $candidate['shared_genres'] = array_slice($components['shared_genres'], 0, 3);
             $candidate['shared_artists'] = array_slice($components['shared_artists'], 0, 3);
+            $candidate['age'] = $this->resolveAge($candidate);
+            $candidate['seeking_type'] = $candidate['seeking_type'] ?? 'dating';
             $this->matchDAL->saveCompatibilityScore(
                 $userId,
                 $candidate['id'],
@@ -51,6 +58,8 @@ class MatchController {
             $artists = $this->musicDAL->getUserArtists($candidate['id']);
             $candidate['top_artist'] = $artists[0]['name'] ?? null;
         }
+        unset($candidate);
+        $candidates = array_values(array_filter($candidates, static fn(array $candidate): bool => isset($candidate['compatibility'])));
         // Sort by compatibility descending
         usort($candidates, fn($a, $b) => $b['compatibility'] <=> $a['compatibility']);
         return $candidates;
@@ -237,5 +246,111 @@ class MatchController {
      */
     public function computeCompatibility(int $userA, int $userB): float {
         return round($this->computeComponents($userA, $userB)['final'] * 100, 1);
+    }
+
+    public function isDiscoverEligible(int $viewerId, array $candidate): bool {
+        $viewer = $this->userDAL->getUserById($viewerId);
+        return $this->passesPreferenceGate($viewer, $this->resolveAge($viewer), $candidate);
+    }
+
+    private function passesPreferenceGate(array|false $viewer, ?int $viewerAge, array $candidate): bool {
+        if (!$viewer) {
+            return true;
+        }
+
+        $candidateFull = $this->userDAL->getUserById((int)$candidate['id']);
+        if (!$candidateFull) {
+            return false;
+        }
+
+        $candidateAge = $this->resolveAge($candidateFull);
+        $viewerGender = (string)($viewer['gender'] ?? '');
+        $candidateGender = (string)($candidateFull['gender'] ?? '');
+
+        if (!$this->matchesDesiredGender((string)($viewer['desired_gender'] ?? 'everyone'), $candidateGender)) {
+            return false;
+        }
+        if (!$this->matchesDesiredGender((string)($candidateFull['desired_gender'] ?? 'everyone'), $viewerGender)) {
+            return false;
+        }
+
+        if (!$this->matchesAgePreference((int)($viewer['min_age_pref'] ?? 18), (int)($viewer['max_age_pref'] ?? 100), $candidateAge)) {
+            return false;
+        }
+        if (!$this->matchesAgePreference((int)($candidateFull['min_age_pref'] ?? 18), (int)($candidateFull['max_age_pref'] ?? 100), $viewerAge)) {
+            return false;
+        }
+
+        if (!$this->matchesLocationScope((string)($viewer['location_scope'] ?? 'anywhere'), (string)($viewer['location'] ?? ''), (string)($candidateFull['location'] ?? ''))) {
+            return false;
+        }
+        if (!$this->matchesLocationScope((string)($candidateFull['location_scope'] ?? 'anywhere'), (string)($candidateFull['location'] ?? ''), (string)($viewer['location'] ?? ''))) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function matchesDesiredGender(string $desiredGender, string $candidateGender): bool {
+        $desiredGender = strtolower(trim($desiredGender));
+        $candidateGender = strtolower(trim($candidateGender));
+
+        if ($desiredGender === '' || $desiredGender === 'everyone') {
+            return true;
+        }
+
+        return $candidateGender !== '' && $candidateGender === $desiredGender;
+    }
+
+    private function matchesAgePreference(int $minAge, int $maxAge, ?int $candidateAge): bool {
+        if ($candidateAge === null) {
+            return true;
+        }
+
+        $minAge = max(18, $minAge ?: 18);
+        $maxAge = max($minAge, $maxAge ?: 100);
+        return $candidateAge >= $minAge && $candidateAge <= $maxAge;
+    }
+
+    private function matchesLocationScope(string $scope, string $viewerLocation, string $candidateLocation): bool {
+        $scope = strtolower(trim($scope));
+        if ($scope === '' || $scope === 'anywhere') {
+            return true;
+        }
+
+        [$viewerCity, $viewerCountry] = $this->splitLocation($viewerLocation);
+        [$candidateCity, $candidateCountry] = $this->splitLocation($candidateLocation);
+
+        if ($scope === 'same_city') {
+            return $viewerCity !== '' && $viewerCity === $candidateCity;
+        }
+
+        if ($scope === 'same_country') {
+            return $viewerCountry !== '' && $viewerCountry === $candidateCountry;
+        }
+
+        return true;
+    }
+
+    private function splitLocation(string $location): array {
+        $parts = array_map('trim', explode(',', strtolower($location)));
+        if (count($parts) >= 2) {
+            return [$parts[0], $parts[count($parts) - 1]];
+        }
+
+        return [$parts[0] ?? '', $parts[0] ?? ''];
+    }
+
+    private function resolveAge(array|false $profile): ?int {
+        if (!$profile) {
+            return null;
+        }
+
+        $birthYear = (int)($profile['birth_year'] ?? 0);
+        if ($birthYear <= 0) {
+            return null;
+        }
+
+        return (int)date('Y') - $birthYear;
     }
 }

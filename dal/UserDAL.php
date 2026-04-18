@@ -26,7 +26,16 @@ class UserDAL {
                     l.city,
                     l.country
                 ) AS location,
+                l.city,
+                l.country,
                 uph.photo_url AS profile_photo,
+                up.gender_id,
+                g.name AS gender,
+                COALESCE(up.seeking_type, "dating") AS seeking_type,
+                up.min_age_pref,
+                up.max_age_pref,
+                COALESCE(up.desired_gender, "everyone") AS desired_gender,
+                COALESCE(up.location_scope, "anywhere") AS location_scope,
                 (u.status = "active") AS is_active,
                 (u.role = "admin") AS is_admin,
                 EXISTS(SELECT 1 FROM user_genres ug WHERE ug.user_id = u.user_id) AS onboarding_complete,
@@ -36,10 +45,51 @@ class UserDAL {
                 u.updated_at
              FROM users u
              LEFT JOIN profiles p ON p.user_id = u.user_id
+             LEFT JOIN user_preferences up ON up.user_id = u.user_id
+             LEFT JOIN genders g ON g.gender_id = up.gender_id
              LEFT JOIN locations l ON l.location_id = p.location_id
              LEFT JOIN user_photos uph
                 ON uph.user_id = u.user_id
                AND uph.is_primary = 1';
+    }
+
+    public function getAllGenders(): array {
+        if (!$this->db) {
+            return [];
+        }
+
+        return $this->db->query('SELECT gender_id AS id, name FROM genders ORDER BY gender_id')->fetchAll();
+    }
+
+    private function normalizeDesiredGender(?string $value): string {
+        $value = strtolower(trim((string)$value));
+        if (in_array($value, ['both', 'all'], true)) {
+            $value = 'everyone';
+        }
+
+        $allowed = ['male', 'female', 'non_binary', 'other', 'everyone'];
+        return in_array($value, $allowed, true) ? $value : 'everyone';
+    }
+
+    private function normalizeLocationScope(?string $value): string {
+        $value = strtolower(trim((string)$value));
+        $allowed = ['anywhere', 'same_country', 'same_city'];
+        return in_array($value, $allowed, true) ? $value : 'anywhere';
+    }
+
+    private function normalizeSeekingType(?string $value): string {
+        $value = strtolower(trim((string)$value));
+        $allowed = ['friendship', 'dating', 'networking', 'music_buddy'];
+        return in_array($value, $allowed, true) ? $value : 'dating';
+    }
+
+    private function normalizeAgePreference(mixed $value, int $fallback): int {
+        $age = (int)$value;
+        if ($age <= 0) {
+            return $fallback;
+        }
+
+        return max(18, min(100, $age));
     }
 
     private function resolveGenderId(?string $gender): ?int {
@@ -178,8 +228,8 @@ class UserDAL {
 
             $genderId = $this->resolveGenderId($gender);
             $stmt = $this->db->prepare(
-                'INSERT INTO user_preferences (user_id, gender_id, seeking_type, min_age_pref, max_age_pref)
-                 VALUES (?, ?, NULL, NULL, NULL)'
+                'INSERT INTO user_preferences (user_id, gender_id, seeking_type, min_age_pref, max_age_pref, desired_gender, location_scope)
+                 VALUES (?, ?, "dating", 18, 40, "everyone", "anywhere")'
             );
             $stmt->execute([$userId, $genderId]);
 
@@ -216,7 +266,25 @@ class UserDAL {
             : $this->resolveLocationId((string)($current['location'] ?? ''));
         $genderId = array_key_exists('gender', $data)
             ? $this->resolveGenderId((string)$data['gender'])
-            : null;
+            : ($current['gender_id'] !== null ? (int)$current['gender_id'] : null);
+        $desiredGender = array_key_exists('desired_gender', $data)
+            ? $this->normalizeDesiredGender((string)$data['desired_gender'])
+            : (string)($current['desired_gender'] ?? 'everyone');
+        $seekingType = array_key_exists('seeking_type', $data)
+            ? $this->normalizeSeekingType((string)$data['seeking_type'])
+            : (string)($current['seeking_type'] ?? 'dating');
+        $locationScope = array_key_exists('location_scope', $data)
+            ? $this->normalizeLocationScope((string)$data['location_scope'])
+            : (string)($current['location_scope'] ?? 'anywhere');
+        $minAgePref = array_key_exists('min_age_pref', $data)
+            ? $this->normalizeAgePreference($data['min_age_pref'], 18)
+            : (int)($current['min_age_pref'] ?? 18);
+        $maxAgePref = array_key_exists('max_age_pref', $data)
+            ? $this->normalizeAgePreference($data['max_age_pref'], 40)
+            : (int)($current['max_age_pref'] ?? 40);
+        if ($maxAgePref < $minAgePref) {
+            $maxAgePref = $minAgePref;
+        }
 
         $this->db->beginTransaction();
         try {
@@ -227,13 +295,26 @@ class UserDAL {
             );
             $stmt->execute([$name, $bio !== '' ? $bio : null, $birthYear, $locationId, $id]);
 
-            if (array_key_exists('gender', $data)) {
+            if (
+                array_key_exists('gender', $data)
+                || array_key_exists('desired_gender', $data)
+                || array_key_exists('seeking_type', $data)
+                || array_key_exists('min_age_pref', $data)
+                || array_key_exists('max_age_pref', $data)
+                || array_key_exists('location_scope', $data)
+            ) {
                 $stmt = $this->db->prepare(
-                    'INSERT INTO user_preferences (user_id, gender_id, seeking_type, min_age_pref, max_age_pref)
-                     VALUES (?, ?, NULL, NULL, NULL)
-                     ON DUPLICATE KEY UPDATE gender_id = VALUES(gender_id)'
+                    'INSERT INTO user_preferences (user_id, gender_id, seeking_type, min_age_pref, max_age_pref, desired_gender, location_scope)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE
+                        gender_id = VALUES(gender_id),
+                        seeking_type = VALUES(seeking_type),
+                        min_age_pref = VALUES(min_age_pref),
+                        max_age_pref = VALUES(max_age_pref),
+                        desired_gender = VALUES(desired_gender),
+                        location_scope = VALUES(location_scope)'
                 );
-                $stmt->execute([$id, $genderId]);
+                $stmt->execute([$id, $genderId, $seekingType, $minAgePref, $maxAgePref, $desiredGender, $locationScope]);
             }
 
             if (array_key_exists('profile_photo', $data)) {
@@ -281,8 +362,8 @@ class UserDAL {
         }
 
         $stmt = $this->db->prepare(
-            'INSERT INTO user_preferences (user_id, gender_id, seeking_type, min_age_pref, max_age_pref)
-             VALUES (?, NULL, NULL, NULL, NULL)
+            'INSERT INTO user_preferences (user_id, gender_id, seeking_type, min_age_pref, max_age_pref, desired_gender, location_scope)
+             VALUES (?, NULL, "dating", 18, 40, "everyone", "anywhere")
              ON DUPLICATE KEY UPDATE user_id = VALUES(user_id)'
         );
 
@@ -370,6 +451,12 @@ class UserDAL {
                       AND ug.genre_id = ?
                )';
             $params[] = $genreId;
+        }
+
+        $gender = trim((string)($filters['gender'] ?? ''));
+        if ($gender !== '') {
+            $sql .= ' AND g.name = ?';
+            $params[] = $gender;
         }
 
         $sql .= '

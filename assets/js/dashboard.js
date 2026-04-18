@@ -1,4 +1,4 @@
-// dashboard.js — load and render match cards
+// dashboard.js — one-by-one discovery queue
 
 function escHtml(value) {
     return String(value ?? '')
@@ -9,57 +9,119 @@ function escHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-function buildCardPhoto(m) {
-    if (m.profile_photo) {
-        return `<img src="${escHtml(m.profile_photo)}" alt="${escHtml(m.name)}">`;
+const discoveryState = {
+    queue: [],
+    index: 0,
+};
+
+function buildCardPhoto(match) {
+    if (match.profile_photo) {
+        return `<img src="${escHtml(match.profile_photo)}" alt="${escHtml(match.name)}">`;
     }
-    if (m.top_artist) {
+    if (match.top_artist) {
         return `<div class="artist-bg-card">
             <i class="fas fa-music"></i>
-            <span>${escHtml(m.top_artist)}</span>
+            <span>${escHtml(match.top_artist)}</span>
         </div>`;
     }
-    return `<div class="avatar-placeholder">${escHtml(m.name.charAt(0))}</div>`;
+    return `<div class="avatar-placeholder">${escHtml((match.name || '?').charAt(0))}</div>`;
+}
+
+function updateQueueMeta() {
+    const meta = document.getElementById('discoverQueueMeta');
+    if (!meta) return;
+
+    if (!discoveryState.queue.length) {
+        meta.textContent = 'No profiles available right now. Try broadening your preferences or refreshing later.';
+        return;
+    }
+
+    const remaining = discoveryState.queue.length - discoveryState.index - 1;
+    const current = discoveryState.queue[discoveryState.index];
+    meta.textContent = `${current.compatibility}% music match. ${remaining} more profile${remaining === 1 ? '' : 's'} in your current queue.`;
+}
+
+function renderEmptyState() {
+    const grid = document.getElementById('matchGrid');
+    if (!grid) return;
+
+    grid.innerHTML = `
+        <div class="hm-card discover-empty">
+            <i class="fas fa-compact-disc"></i>
+            <h3>No more profiles in your queue</h3>
+            <p>Try widening your age range or location preference, then refresh the queue.</p>
+            <a href="/profile-own.php#preferences" class="btn-outline">Update Preferences</a>
+        </div>
+    `;
+    updateQueueMeta();
+}
+
+function renderCurrentCard() {
+    const grid = document.getElementById('matchGrid');
+    if (!grid) return;
+
+    const current = discoveryState.queue[discoveryState.index];
+    if (!current) {
+        renderEmptyState();
+        return;
+    }
+
+    const metaBits = [current.age, current.location].filter(Boolean).join(' · ');
+    grid.innerHTML = `
+        <div class="match-card discover-card">
+            <div class="match-card-photo discover-photo">
+                ${buildCardPhoto(current)}
+                <span class="compat-badge">${current.compatibility}%</span>
+            </div>
+            <div class="match-card-body">
+                <div class="discover-card-topline">
+                    <div>
+                        <div class="match-card-name discover-card-name">${escHtml(current.name)}</div>
+                        <div class="match-card-meta">${escHtml(metaBits)}</div>
+                    </div>
+                    <span class="discover-intent">${escHtml(String(current.seeking_type || 'dating').replace(/_/g, ' '))}</span>
+                </div>
+                ${current.top_artist ? `<div class="top-artist-label"><i class="fas fa-music"></i> ${escHtml(current.top_artist)}</div>` : ''}
+                ${current.match_reason ? `<div class="match-why">${escHtml(current.match_reason)}</div>` : ''}
+                ${current.shared_summary ? `<div class="match-summary">${escHtml(current.shared_summary)}</div>` : ''}
+                ${(current.shared_genres || []).length ? `
+                    <div class="tag-container" style="margin-top:12px;">
+                        ${(current.shared_genres || []).map(genre => `<span class="tag tag-purple">${escHtml(genre)}</span>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+            <div class="match-card-actions discover-actions">
+                <button class="action-btn pass-btn" onclick="doSwipe(${current.id}, 'skip', this)" title="Skip">
+                    <i class="fas fa-times"></i><span>Skip</span>
+                </button>
+                <button class="action-btn info-btn" onclick="window.location='/profile.php?id=${current.id}'" title="View Profile">
+                    <i class="fas fa-user"></i><span>Info</span>
+                </button>
+                <button class="action-btn like-btn" onclick="doSwipe(${current.id}, 'like', this)" title="Like">
+                    <i class="fas fa-heart"></i><span>Like</span>
+                </button>
+            </div>
+        </div>
+    `;
+
+    updateQueueMeta();
 }
 
 async function loadMatches() {
     const grid = document.getElementById('matchGrid');
     if (!grid) return;
 
-    grid.innerHTML = '<p style="color:var(--text-secondary);">Loading matches...</p>';
-
+    grid.innerHTML = '<p style="color:var(--text-secondary);">Loading your discovery queue...</p>';
     const matches = await apiGet('/api/matches.php?action=dashboard');
-    if (!Array.isArray(matches) || matches.length === 0) {
-        grid.innerHTML = '<p style="color:var(--text-secondary);">No new matches right now. Check back later!</p>';
+    discoveryState.queue = Array.isArray(matches) ? matches : [];
+    discoveryState.index = 0;
+
+    if (!discoveryState.queue.length) {
+        renderEmptyState();
         return;
     }
 
-    grid.innerHTML = matches.map(m => `
-        <div class="match-card">
-            <div class="match-card-photo">
-                ${buildCardPhoto(m)}
-                <span class="compat-badge">${m.compatibility}%</span>
-            </div>
-            <div class="match-card-body">
-                <div class="match-card-name">${escHtml(m.name)}</div>
-                <div class="match-card-meta">${escHtml(m.location ?? '')}</div>
-                ${m.top_artist ? `<div class="top-artist-label"><i class="fas fa-music"></i> ${escHtml(m.top_artist)}</div>` : ''}
-                ${m.match_reason ? `<div class="match-why">${escHtml(m.match_reason)}</div>` : ''}
-                ${m.shared_summary ? `<div class="match-summary">${escHtml(m.shared_summary)}</div>` : ''}
-            </div>
-            <div class="match-card-actions">
-                <button class="action-btn pass-btn" onclick="doSwipe(${m.id}, 'skip', this)" title="Skip">
-                    <i class="fas fa-times"></i><span>Skip</span>
-                </button>
-                <button class="action-btn info-btn" onclick="window.location='/profile.php?id=${m.id}'" title="View Profile">
-                    <i class="fas fa-user"></i><span>Info</span>
-                </button>
-                <button class="action-btn like-btn" onclick="doSwipe(${m.id}, 'like', this)" title="Like">
-                    <i class="fas fa-heart"></i><span>Like</span>
-                </button>
-            </div>
-        </div>
-    `).join('');
+    renderCurrentCard();
 }
 
 document.addEventListener('DOMContentLoaded', loadMatches);
@@ -67,8 +129,11 @@ document.addEventListener('DOMContentLoaded', loadMatches);
 async function doSwipe(toUserId, action, btn) {
     btn.disabled = true;
     const data = await apiPost('/api/matches.php', { action: 'swipe', to_user_id: toUserId, action_type: action });
-    btn.closest('.match-card').remove();
     if (data.is_match) {
         window.location.href = `/chat.php?with=${toUserId}`;
+        return;
     }
+
+    discoveryState.index += 1;
+    renderCurrentCard();
 }

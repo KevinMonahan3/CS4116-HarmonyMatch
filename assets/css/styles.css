@@ -492,6 +492,77 @@ select.field-input option, select.form-input option {
   gap: 20px;
 }
 
+.discover-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.discover-status-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.discover-feed {
+  display: grid;
+  justify-items: center;
+}
+
+.discover-card {
+  width: min(100%, 520px);
+  cursor: default;
+}
+
+.discover-photo {
+  aspect-ratio: 1 / 0.92;
+}
+
+.discover-card-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.discover-card-name {
+  font-size: 24px;
+}
+
+.discover-intent {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-purple-light);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.discover-actions {
+  padding-top: 4px;
+}
+
+.discover-empty {
+  width: min(100%, 520px);
+  text-align: center;
+  padding: 42px 28px;
+}
+
+.discover-empty i {
+  font-size: 34px;
+  color: var(--accent-purple-light);
+  margin-bottom: 14px;
+}
+
+.discover-empty h3 {
+  margin-bottom: 10px;
+}
+
+.discover-empty p {
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+}
+
 .match-card {
   background: var(--bg-card);
   border: 1px solid var(--border);

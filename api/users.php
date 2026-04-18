@@ -16,6 +16,10 @@ switch ($action) {
         echo json_encode((new MusicDAL())->getAllGenres());
         break;
 
+    case 'genders':
+        echo json_encode($ctrl->getGenderOptions());
+        break;
+
     case 'profile':
         $targetId = (int)($_GET['id'] ?? $userId);
         echo json_encode($ctrl->getProfile($targetId));
@@ -29,6 +33,7 @@ switch ($action) {
         echo json_encode($ctrl->search($userId, [
             'query' => (string)($_GET['query'] ?? $_POST['query'] ?? ''),
             'genre_id' => (int)($_GET['genre_id'] ?? $_POST['genre_id'] ?? 0),
+            'gender' => (string)($_GET['gender'] ?? $_POST['gender'] ?? ''),
             'min_age' => (int)($_GET['min_age'] ?? $_POST['min_age'] ?? 18),
             'max_age' => (int)($_GET['max_age'] ?? $_POST['max_age'] ?? 60),
             'min_compatibility' => (float)($_GET['min_compatibility'] ?? $_POST['min_compatibility'] ?? 0),

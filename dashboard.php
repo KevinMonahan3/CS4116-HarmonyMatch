@@ -5,7 +5,26 @@
  */
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/controllers/AuthController.php';
+require_once __DIR__ . '/controllers/UserController.php';
 AuthController::requireLogin();
+
+$viewerProfile = (new UserController())->getProfile((int)$_SESSION['user_id']) ?: [];
+$preferenceSummary = implode(' · ', array_filter([
+    'Interested in ' . match ((string)($viewerProfile['desired_gender'] ?? 'everyone')) {
+        'male' => 'men',
+        'female' => 'women',
+        'non_binary' => 'non-binary people',
+        'other' => 'other genders',
+        default => 'everyone',
+    },
+    ((int)($viewerProfile['min_age_pref'] ?? 18)) . '–' . ((int)($viewerProfile['max_age_pref'] ?? 40)) . ' age range',
+    match ((string)($viewerProfile['location_scope'] ?? 'anywhere')) {
+        'same_city' => 'same city',
+        'same_country' => 'same country',
+        default => 'any location',
+    },
+    !empty($viewerProfile['seeking_type']) ? ucfirst(str_replace('_', ' ', (string)$viewerProfile['seeking_type'])) : null,
+]));
 
 $pageTitle = 'Dashboard';
 include __DIR__ . '/includes/header.php';
@@ -30,12 +49,18 @@ include __DIR__ . '/includes/header.php';
     <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
     <div>
         <h2 class="section-title">Discover Matches</h2>
-        <p class="section-subtitle">People who share your musical soul</p>
+        <p class="section-subtitle">One profile at a time, ranked by music compatibility and your dating preferences.</p>
+        <p class="text-sm text-muted mt-1"><?= htmlspecialchars($preferenceSummary) ?></p>
     </div>
-    <button class="btn-outline" id="refreshMatchesBtn" onclick="refreshMatches()" style="display:flex;align-items:center;gap:8px;white-space:nowrap;align-self:center;">
-        <i class="fas fa-redo" id="refreshIcon"></i> Refresh Matches
-    </button>
-</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-self:center;">
+      <a href="/profile-own.php#preferences" class="btn-outline" style="display:flex;align-items:center;gap:8px;white-space:nowrap;">
+        <i class="fas fa-sliders-h"></i> Edit Preferences
+      </a>
+      <button class="btn-outline" id="refreshMatchesBtn" onclick="refreshMatches()" style="display:flex;align-items:center;gap:8px;white-space:nowrap;">
+          <i class="fas fa-redo" id="refreshIcon"></i> Refresh Queue
+      </button>
+    </div>
+    </div>
 
     <!--
       DB CONNECTION POINT — Match Grid
@@ -56,61 +81,15 @@ include __DIR__ . '/includes/header.php';
       dashboard.js then renders each user as a .match-card element.
     ─────────────────────────────────────────────────────────
     -->
-    <div id="matchGrid" class="match-grid">
-
-      <!-- Static placeholder cards — replaced by JS once DB is wired -->
-      <div class="match-card">
-        <div class="match-card-photo">
-          <div class="artist-bg-card"><i class="fas fa-music"></i><span>Arctic Monkeys</span></div>
-          <span class="compat-badge">87%</span>
-        </div>
-        <div class="match-card-body">
-          <div class="match-card-name">Alex M.</div>
-          <div class="match-card-meta">24 · Dublin</div>
-          <div class="top-artist-label"><i class="fas fa-music"></i> Arctic Monkeys</div>
-        </div>
-        <div class="match-card-actions">
-          <button class="action-btn pass-btn"><i class="fas fa-times"></i><span>Skip</span></button>
-          <button class="action-btn info-btn"><i class="fas fa-user"></i><span>Info</span></button>
-          <button class="action-btn like-btn"><i class="fas fa-heart"></i><span>Like</span></button>
+    <div class="discover-shell">
+      <div class="hm-card discover-status-card">
+        <div>
+          <h3 style="margin:0 0 6px;">Your queue</h3>
+          <p id="discoverQueueMeta" class="text-sm text-muted">Preparing a ranked list of profiles…</p>
         </div>
       </div>
-
-      <div class="match-card">
-        <div class="match-card-photo">
-          <div class="artist-bg-card"><i class="fas fa-music"></i><span>Kendrick Lamar</span></div>
-          <span class="compat-badge">72%</span>
-        </div>
-        <div class="match-card-body">
-          <div class="match-card-name">Sam K.</div>
-          <div class="match-card-meta">27 · Cork</div>
-          <div class="top-artist-label"><i class="fas fa-music"></i> Kendrick Lamar</div>
-        </div>
-        <div class="match-card-actions">
-          <button class="action-btn pass-btn"><i class="fas fa-times"></i><span>Skip</span></button>
-          <button class="action-btn info-btn"><i class="fas fa-user"></i><span>Info</span></button>
-          <button class="action-btn like-btn"><i class="fas fa-heart"></i><span>Like</span></button>
-        </div>
-      </div>
-
-      <div class="match-card">
-        <div class="match-card-photo">
-          <div class="artist-bg-card"><i class="fas fa-music"></i><span>Billie Eilish</span></div>
-          <span class="compat-badge">61%</span>
-        </div>
-        <div class="match-card-body">
-          <div class="match-card-name">Jordan L.</div>
-          <div class="match-card-meta">22 · Galway</div>
-          <div class="top-artist-label"><i class="fas fa-music"></i> Billie Eilish</div>
-        </div>
-        <div class="match-card-actions">
-          <button class="action-btn pass-btn"><i class="fas fa-times"></i><span>Skip</span></button>
-          <button class="action-btn info-btn"><i class="fas fa-user"></i><span>Info</span></button>
-          <button class="action-btn like-btn"><i class="fas fa-heart"></i><span>Like</span></button>
-        </div>
-      </div>
-
-    </div><!-- /#matchGrid -->
+      <div id="matchGrid" class="discover-feed"></div>
+    </div>
 
   </main>
 </div>

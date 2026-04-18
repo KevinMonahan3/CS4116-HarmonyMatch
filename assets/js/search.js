@@ -11,6 +11,7 @@ function escHtml(value) {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadGenres();
+    loadGenders();
     loadResults();
 
     document.getElementById('applyFilters')?.addEventListener('click', loadResults);
@@ -51,6 +52,7 @@ async function loadResults() {
     const ageMax = document.getElementById('ageMax')?.value ?? '40';
     const compat = document.getElementById('compatMin')?.value ?? '0';
     const genreId = document.getElementById('genreFilter')?.value ?? '';
+    const gender = document.getElementById('genderFilter')?.value ?? '';
     const query = document.getElementById('searchQuery')?.value?.trim() ?? '';
 
     const params = new URLSearchParams({
@@ -62,6 +64,9 @@ async function loadResults() {
 
     if (genreId) {
         params.set('genre_id', genreId);
+    }
+    if (gender) {
+        params.set('gender', gender);
     }
     if (query) {
         params.set('query', query);
@@ -129,6 +134,24 @@ async function loadGenres() {
     const currentValue = select.value;
     select.innerHTML = '<option value="">Any genre</option>' + genres.map(
         genre => `<option value="${genre.id}">${genre.name}</option>`
+    ).join('');
+    select.value = currentValue;
+}
+
+async function loadGenders() {
+    const select = document.getElementById('genderFilter');
+    if (!select) {
+        return;
+    }
+
+    const genders = await apiGet('/api/users.php?action=genders');
+    if (!Array.isArray(genders)) {
+        return;
+    }
+
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Any gender</option>' + genders.map(
+        gender => `<option value="${gender.name}">${gender.name.replace(/_/g, ' ')}</option>`
     ).join('');
     select.value = currentValue;
 }
