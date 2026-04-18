@@ -83,6 +83,18 @@ if (!empty($_SESSION['user_id'])) {
     .pw-req:last-child { margin-bottom:0; }
     .pw-req.met { color:#10b981; }
     .pw-req i { font-size:11px; width:12px; }
+    /* Password visibility toggle */
+    .pw-toggle {
+      position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      background:none; border:none; color:var(--text-muted); font-size:14px;
+      cursor:pointer; padding:4px; line-height:1;
+      -webkit-tap-highlight-color:transparent; transition:color 0.15s;
+    }
+    .pw-toggle:hover { color:var(--text-secondary); }
+    .input-wrap.has-toggle .field-input { padding-right: 40px; }
+    /* Mobile-only logo above the auth card */
+    .mobile-auth-logo { display:none; align-items:center; justify-content:center; gap:10px; margin-bottom:28px; }
+    @media (max-width:900px) { .mobile-auth-logo { display:flex; } }
   </style>
 </head>
 <body>
@@ -154,6 +166,11 @@ if (!empty($_SESSION['user_id'])) {
     <div class="auth-right">
       <div class="auth-card">
 
+        <div class="mobile-auth-logo">
+          <div class="logo-icon"><i class="fas fa-music"></i></div>
+          <span class="logo-text" style="font-size:22px;">HarmonyMatch</span>
+        </div>
+
         <div style="margin-bottom:32px;">
           <h1 id="formTitle" style="font-size:26px;font-weight:800;letter-spacing:-0.4px;">Welcome back</h1>
           <p style="font-size:14.5px;color:var(--text-secondary);margin-top:6px;">Sign in to find your musical soulmate.</p>
@@ -177,9 +194,10 @@ if (!empty($_SESSION['user_id'])) {
           </div>
           <div class="field">
             <label class="field-label">Password</label>
-            <div class="input-wrap">
+            <div class="input-wrap has-toggle">
               <i class="fas fa-lock"></i>
               <input class="field-input" type="password" id="loginPassword" placeholder="••••••••" />
+              <button type="button" class="pw-toggle" onclick="togglePw('loginPassword', this)" aria-label="Toggle password visibility"><i class="fas fa-eye"></i></button>
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
@@ -230,9 +248,10 @@ if (!empty($_SESSION['user_id'])) {
           </div>
           <div class="field">
             <label class="field-label">Password</label>
-            <div class="input-wrap">
+            <div class="input-wrap has-toggle">
               <i class="fas fa-lock"></i>
               <input class="field-input" type="password" id="regPassword" placeholder="Create a password" oninput="checkPwReqs()" />
+              <button type="button" class="pw-toggle" onclick="togglePw('regPassword', this)" aria-label="Toggle password visibility"><i class="fas fa-eye"></i></button>
             </div>
             <div class="pw-reqs">
               <div class="pw-reqs-title">Password must have:</div>
@@ -244,9 +263,10 @@ if (!empty($_SESSION['user_id'])) {
           </div>
           <div class="field">
             <label class="field-label">Confirm Password</label>
-            <div class="input-wrap">
+            <div class="input-wrap has-toggle">
               <i class="fas fa-lock"></i>
               <input class="field-input" type="password" id="regConfirm" placeholder="Re-enter password" />
+              <button type="button" class="pw-toggle" onclick="togglePw('regConfirm', this)" aria-label="Toggle password visibility"><i class="fas fa-eye"></i></button>
             </div>
           </div>
           <label class="check-row" style="margin-bottom:20px;">
@@ -265,6 +285,18 @@ if (!empty($_SESSION['user_id'])) {
   </div>
 
   <script>
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon  = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+
     function switchTab(tab) {
       document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
       document.getElementById('reg-form').style.display   = tab === 'reg'   ? 'block' : 'none';
