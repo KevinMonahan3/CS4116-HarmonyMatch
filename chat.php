@@ -64,7 +64,9 @@ include __DIR__ . '/includes/header.php';
         Populated by chat.js after loadConversation(userId).
       -->
       <div class="chat-header" id="chatHeader">
-        <!-- Populated by chat.js -->
+        <button class="btn-ghost chat-back-btn" onclick="showInbox()" aria-label="Back to inbox" style="padding:6px 10px;margin-right:4px;flex-shrink:0;">
+          <i class="fas fa-chevron-left"></i>
+        </button>
         <span style="color:var(--text-muted);">Select a conversation</span>
       </div>
 
@@ -196,14 +198,32 @@ include __DIR__ . '/includes/header.php';
     });
 
     document.getElementById('chatHeader').innerHTML =
-      `${avatarHtml(name, photo, 36)}
-       <strong style="margin-left:10px;">${escHtml(name)}</strong>`;
+      `<button class="btn-ghost chat-back-btn" onclick="showInbox()" aria-label="Back to inbox" style="padding:6px 10px;margin-right:4px;flex-shrink:0;">
+         <i class="fas fa-chevron-left"></i>
+       </button>
+       ${avatarHtml(name, photo, 36)}
+       <strong style="margin-left:8px;">${escHtml(name)}</strong>`;
 
     document.getElementById('chatPanel').style.display = '';
+
+    // On mobile, switch from inbox view to conversation view
+    if (window.innerWidth <= 600) {
+      document.querySelector('.chat-layout').classList.add('mobile-panel-open');
+    }
+
     loadMessages(userId);
 
     clearInterval(pollTimer);
     pollTimer = setInterval(() => loadMessages(userId), 5000);
+  }
+
+  /* ── Back to inbox (mobile) ── */
+  function showInbox() {
+    document.querySelector('.chat-layout').classList.remove('mobile-panel-open');
+    // Clear inline display style so the CSS display:none rule takes over and hides the panel
+    document.getElementById('chatPanel').style.display = '';
+    activeUserId = null;
+    clearInterval(pollTimer);
   }
 
   /* ── Load messages for active conversation ── */
