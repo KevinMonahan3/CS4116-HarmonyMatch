@@ -64,7 +64,7 @@ include __DIR__ . '/includes/header.php';
         Populated by chat.js after loadConversation(userId).
       -->
       <div class="chat-header" id="chatHeader">
-        <button class="btn-ghost chat-back-btn" onclick="showInbox()" aria-label="Back to inbox" style="padding:6px 10px;margin-right:4px;flex-shrink:0;">
+        <button class="chat-back-btn" onclick="showInbox()" aria-label="Back to inbox">
           <i class="fas fa-chevron-left"></i>
         </button>
         <span style="color:var(--text-muted);">Select a conversation</span>
@@ -198,7 +198,7 @@ include __DIR__ . '/includes/header.php';
     });
 
     document.getElementById('chatHeader').innerHTML =
-      `<button class="btn-ghost chat-back-btn" onclick="showInbox()" aria-label="Back to inbox" style="padding:6px 10px;margin-right:4px;flex-shrink:0;">
+      `<button class="chat-back-btn" onclick="showInbox()" aria-label="Back to inbox">
          <i class="fas fa-chevron-left"></i>
        </button>
        ${avatarHtml(name, photo, 36)}
