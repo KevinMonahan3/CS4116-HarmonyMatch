@@ -44,6 +44,10 @@ switch ($action) {
         echo json_encode($ctrl->updateProfile($userId, $_POST));
         break;
 
+    case 'upload_photo':
+        echo json_encode($ctrl->uploadPhoto($userId, $_FILES['photo'] ?? []));
+        break;
+
     case 'onboarding_music':
     case 'update_music':
         $genresInput = $_POST['genres'] ?? [];
