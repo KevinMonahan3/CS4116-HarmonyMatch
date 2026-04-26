@@ -35,3 +35,49 @@ async function apiGet(url) {
     const res = await fetch(url);
     return res.json();
 }
+
+async function reportUser(userId) {
+    const reasonOptions = [
+        'spam',
+        'fake_profile',
+        'harassment',
+        'abuse',
+        'other',
+    ];
+    const choice = prompt(
+        'Report reason:\n' +
+        '1. Spam\n' +
+        '2. Fake profile\n' +
+        '3. Harassment\n' +
+        '4. Abuse\n' +
+        '5. Other\n\n' +
+        'Type a number or write a short reason.'
+    );
+    if (!choice) return;
+
+    const index = Number(choice.trim()) - 1;
+    const reason = reasonOptions[index] || choice.trim();
+    const data = await apiPost('/api/reports.php', {
+        action: 'report',
+        reported_id: userId,
+        reason,
+    });
+
+    alert(data.success ? 'Report submitted. Thank you.' : `Error: ${data.error ?? 'Unable to submit report.'}`);
+}
+
+async function blockUser(userId) {
+    if (!confirm('Block this user? They will no longer be able to interact with you.')) return;
+    const data = await apiPost('/api/reports.php', {
+        action: 'block',
+        blocked_id: userId,
+    });
+
+    if (data.success) {
+        alert('User blocked.');
+        window.location = '/dashboard.php';
+        return;
+    }
+
+    alert(`Error: ${data.error ?? 'Unable to block user.'}`);
+}

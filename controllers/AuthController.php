@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../dal/UserDAL.php';
+require_once __DIR__ . '/../services/ResendMailer.php';
 
 class AuthController {
     private UserDAL $userDAL;
@@ -79,6 +80,91 @@ class AuthController {
 
         $redirect = !empty($user['onboarding_complete']) ? 'dashboard.php' : 'onboarding.php';
         return ['success' => true, 'redirect' => $redirect];
+    }
+
+    public function requestPasswordReset(string $email): array {
+        $email = trim($email);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['success' => false, 'error' => 'Enter a valid email address'];
+        }
+
+        $generic = ['success' => true, 'message' => 'If that email exists, a reset link has been sent.'];
+        $user = $this->userDAL->getUserByEmail($email);
+        if (!$user || empty($user['is_active'])) {
+            return $generic;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $token);
+        $expiresAt = new DateTimeImmutable('+1 hour');
+        if (!$this->userDAL->createPasswordResetToken((int)$user['id'], $tokenHash, $expiresAt)) {
+            return ['success' => false, 'error' => 'Unable to create password reset link'];
+        }
+
+        $resetUrl = $this->buildBaseUrl() . '/reset-password.php?token=' . urlencode($token);
+        $mailer = new ResendMailer();
+        $sent = $mailer->sendPasswordReset($email, $resetUrl);
+
+        if (!$sent) {
+            error_log('HarmonyMatch password reset email failed for ' . $email . ': ' . $mailer->lastError);
+            error_log('HarmonyMatch password reset link for ' . $email . ': ' . $resetUrl);
+        }
+
+        return $generic + ['mail_sent' => $sent, 'mailer' => $mailer->isConfigured() ? 'resend' : 'not_configured'];
+    }
+
+    public function validateResetToken(string $token): array {
+        $token = trim($token);
+        if ($token === '') {
+            return ['success' => false, 'error' => 'Missing reset token'];
+        }
+
+        $reset = $this->userDAL->getValidPasswordReset(hash('sha256', $token));
+        return $reset
+            ? ['success' => true, 'email' => $reset['email']]
+            : ['success' => false, 'error' => 'Reset link is invalid or expired'];
+    }
+
+    public function resetPassword(string $token, string $password, string $confirm): array {
+        $token = trim($token);
+        if ($token === '') {
+            return ['success' => false, 'error' => 'Missing reset token'];
+        }
+        if ($password !== $confirm) {
+            return ['success' => false, 'error' => 'Passwords do not match'];
+        }
+
+        $pwErrors = [];
+        if (strlen($password) < 8)             $pwErrors[] = 'at least 8 characters';
+        if (!preg_match('/[A-Z]/', $password)) $pwErrors[] = 'an uppercase letter';
+        if (!preg_match('/[0-9]/', $password)) $pwErrors[] = 'a number';
+        if (!preg_match('/[^A-Za-z0-9]/', $password)) $pwErrors[] = 'a special character';
+        if (!empty($pwErrors)) {
+            return ['success' => false, 'error' => 'Password is missing: ' . implode(', ', $pwErrors)];
+        }
+
+        $hash = password_hash($password, PASSWORD_BCRYPT);
+        if (!$this->userDAL->resetPasswordWithToken(hash('sha256', $token), $hash)) {
+            return ['success' => false, 'error' => 'Reset link is invalid or expired'];
+        }
+
+        return ['success' => true, 'redirect' => 'login.php'];
+    }
+
+    private function buildBaseUrl(): string {
+        $configuredBaseUrl = trim((string)(getenv('APP_BASE_URL') ?: ''));
+        if ($configuredBaseUrl !== '') {
+            return rtrim($configuredBaseUrl, '/');
+        }
+
+        $scheme = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+        $forwardedProto = strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        if ($forwardedProto === 'https') {
+            $scheme = 'https';
+        }
+
+        $host = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
+        return rtrim($scheme . '://' . preg_replace('/:(80|443)$/', '', $host), '/');
     }
 
     public function loginAdmin(string $email, string $password): array {

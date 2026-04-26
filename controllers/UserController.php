@@ -21,6 +21,7 @@ class UserController {
         $user['genres']  = $this->musicDAL->getUserGenres($userId);
         $user['artists'] = $this->musicDAL->getUserArtists($userId);
         $user['songs']   = $this->musicDAL->getUserSongs($userId);
+        $user['photos']  = $this->userDAL->getUserPhotos($userId);
         return $user;
     }
 
@@ -120,6 +121,95 @@ class UserController {
         }
 
         return ['success' => true];
+    }
+
+    public function uploadPhoto(int $userId, array $file): array {
+        if (empty($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return ['success' => false, 'error' => 'Please choose a photo to upload'];
+        }
+
+        if ($this->userDAL->getUserPhotoCount($userId) >= 10) {
+            return ['success' => false, 'error' => 'You can upload up to 10 photos'];
+        }
+
+        $maxBytes = 3 * 1024 * 1024;
+        if ((int)($file['size'] ?? 0) > $maxBytes) {
+            return ['success' => false, 'error' => 'Photo must be 3MB or smaller'];
+        }
+
+        $tmpName = (string)($file['tmp_name'] ?? '');
+        $imageInfo = $tmpName !== '' ? @getimagesize($tmpName) : false;
+        if ($imageInfo === false) {
+            return ['success' => false, 'error' => 'Uploaded file must be an image'];
+        }
+
+        $allowedTypes = [
+            IMAGETYPE_JPEG => 'jpg',
+            IMAGETYPE_PNG => 'png',
+            IMAGETYPE_WEBP => 'webp',
+        ];
+        $imageType = (int)($imageInfo[2] ?? 0);
+        if (!isset($allowedTypes[$imageType])) {
+            return ['success' => false, 'error' => 'Please upload a JPG, PNG, or WEBP image'];
+        }
+
+        $uploadDir = __DIR__ . '/../assets/img/uploads';
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
+            return ['success' => false, 'error' => 'Upload folder is not writable'];
+        }
+
+        $filename = 'user-' . $userId . '-' . bin2hex(random_bytes(8)) . '.' . $allowedTypes[$imageType];
+        $targetPath = $uploadDir . '/' . $filename;
+        if (!move_uploaded_file($tmpName, $targetPath)) {
+            return ['success' => false, 'error' => 'Unable to save uploaded photo'];
+        }
+
+        $photoUrl = '/assets/img/uploads/' . $filename;
+        $photo = $this->userDAL->addUserPhoto($userId, $photoUrl);
+        if (!$photo) {
+            @unlink($targetPath);
+            return ['success' => false, 'error' => $this->userDAL->lastError ?: 'Unable to save photo'];
+        }
+
+        return [
+            'success' => true,
+            'photo' => $photo,
+            'photos' => $this->userDAL->getUserPhotos($userId),
+        ];
+    }
+
+    public function setPrimaryPhoto(int $userId, int $photoId): array {
+        if ($photoId <= 0) {
+            return ['success' => false, 'error' => 'Invalid photo'];
+        }
+
+        if (!$this->userDAL->setPrimaryPhoto($userId, $photoId)) {
+            return ['success' => false, 'error' => 'Unable to update primary photo'];
+        }
+
+        return ['success' => true, 'photos' => $this->userDAL->getUserPhotos($userId)];
+    }
+
+    public function deletePhoto(int $userId, int $photoId): array {
+        if ($photoId <= 0) {
+            return ['success' => false, 'error' => 'Invalid photo'];
+        }
+
+        $deleted = $this->userDAL->deleteUserPhoto($userId, $photoId);
+        if (!$deleted) {
+            return ['success' => false, 'error' => 'Unable to delete photo'];
+        }
+
+        $photoPath = (string)($deleted['photo_url'] ?? '');
+        if (str_starts_with($photoPath, '/assets/img/uploads/')) {
+            $fullPath = realpath(__DIR__ . '/..' . $photoPath);
+            $uploadRoot = realpath(__DIR__ . '/../assets/img/uploads');
+            if ($fullPath && $uploadRoot && str_starts_with($fullPath, $uploadRoot)) {
+                @unlink($fullPath);
+            }
+        }
+
+        return ['success' => true, 'photos' => $this->userDAL->getUserPhotos($userId)];
     }
 
     public function saveOnboardingStep2(int $userId, array $genreIds, array $artists, array $songs): array {

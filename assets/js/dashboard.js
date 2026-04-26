@@ -107,6 +107,9 @@ function renderCurrentCard() {
                 <button class="action-btn info-btn" onclick="window.location='/profile.php?id=${current.id}'" title="View Profile">
                     <i class="fas fa-user"></i><span>Info</span>
                 </button>
+                <button class="action-btn info-btn" onclick="reportUser(${current.id})" title="Report">
+                    <i class="fas fa-flag"></i><span>Report</span>
+                </button>
                 <button class="action-btn like-btn" onclick="doSwipe(${current.id}, 'like', this)" title="Like">
                     <i class="fas fa-heart"></i><span>Like</span>
                 </button>

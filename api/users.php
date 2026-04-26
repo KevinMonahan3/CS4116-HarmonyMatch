@@ -48,6 +48,14 @@ switch ($action) {
         echo json_encode($ctrl->uploadPhoto($userId, $_FILES['photo'] ?? []));
         break;
 
+    case 'set_primary_photo':
+        echo json_encode($ctrl->setPrimaryPhoto($userId, (int)($_POST['photo_id'] ?? 0)));
+        break;
+
+    case 'delete_photo':
+        echo json_encode($ctrl->deletePhoto($userId, (int)($_POST['photo_id'] ?? 0)));
+        break;
+
     case 'onboarding_music':
     case 'update_music':
         $genresInput = $_POST['genres'] ?? [];

@@ -119,6 +119,22 @@ include __DIR__ . '/includes/header.php';
 
     </div>
 
+    <?php if (!empty($profile['photos']) && count($profile['photos']) > 1): ?>
+      <div class="hm-card" style="margin-bottom:16px;">
+        <h3 style="margin-bottom:12px;">Photos</h3>
+        <div class="photo-grid">
+          <?php foreach ($profile['photos'] as $photo): ?>
+            <div class="photo-tile">
+              <img src="<?= htmlspecialchars((string)$photo['photo_url']) ?>" alt="Profile photo">
+              <?php if (!empty($photo['is_primary'])): ?>
+                <span class="photo-badge">Primary</span>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endif; ?>
+
     <!-- About card -->
     <div class="hm-card" style="margin-bottom:16px;">
       <h3>About</h3>

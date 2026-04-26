@@ -24,6 +24,8 @@
   --accent-purple-light: #c084fc;
   --accent-cyan:       #06b6d4;
   --accent-pink:       #d946ef;
+  --accent-green:      #10b981;
+  --accent-red:        #ef4444;
 
   --gradient-brand: linear-gradient(135deg, #06b6d4 0%, #7c3aed 45%, #d946ef 100%);
   --gradient-card:  linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(217,70,239,0.06) 100%);
@@ -868,6 +870,77 @@ select.field-input option, select.form-input option {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 12px;
+}
+
+.photo-tile {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+}
+
+.photo-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-badge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(16,185,129,0.9);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.photo-actions {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.photo-action {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.24);
+  background: rgba(13,13,20,0.78);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-action.danger {
+  color: #f87171;
+}
+
+.error-msg {
+  color: #ef4444;
+  font-size: 13.5px;
+  margin-bottom: 12px;
+  display: none;
+}
+
+.success-msg {
+  color: #10b981;
+  font-size: 13.5px;
+  margin-bottom: 12px;
+  display: none;
 }
 
 /* ============================================================

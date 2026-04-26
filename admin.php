@@ -186,6 +186,7 @@ include __DIR__ . '/includes/header.php';
               <th>Reporter</th>
               <th>Reported</th>
               <th>Reason</th>
+              <th>Status</th>
               <th>Date</th>
               <th>Actions</th>
             </tr>
@@ -195,11 +196,15 @@ include __DIR__ . '/includes/header.php';
             <tr>
               <td style="color:var(--text-muted);">#<?= $r['id'] ?></td>
               <td><?= htmlspecialchars($r['reporter_name']) ?></td>
-              <td style="font-weight:600;"><?= htmlspecialchars($r['reported_name']) ?></td>
+              <td style="font-weight:600;">
+                <a href="/profile.php?id=<?= (int)$r['reported_user_id'] ?>"><?= htmlspecialchars($r['reported_name']) ?></a>
+              </td>
               <td style="color:var(--text-secondary);max-width:240px;">
                 <?= htmlspecialchars($r['message'] ?: ucwords(str_replace('_', ' ', (string)$r['reason']))) ?>
               </td>
-              <td style="display:none;"><?= htmlspecialchars((string)$r['status']) ?></td>
+              <td>
+                <span class="badge"><?= htmlspecialchars(ucwords(str_replace('_', ' ', (string)$r['status']))) ?></span>
+              </td>
               <td style="color:var(--text-secondary);"><?= htmlspecialchars($r['created_at']) ?></td>
               <td>
                 <!--

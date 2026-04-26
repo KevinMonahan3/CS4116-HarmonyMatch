@@ -187,6 +187,124 @@ class UserDAL {
         return $stmt->fetch();
     }
 
+    public function getUserPhotos(int $userId): array {
+        if (!$this->db) {
+            return [];
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT
+                photo_id AS id,
+                photo_url,
+                is_primary,
+                display_order,
+                created_at
+             FROM user_photos
+             WHERE user_id = ?
+             ORDER BY is_primary DESC, display_order ASC, photo_id ASC'
+        );
+        $stmt->execute([$userId]);
+
+        return $stmt->fetchAll();
+    }
+
+    public function getUserPhotoCount(int $userId): int {
+        if (!$this->db) {
+            return 0;
+        }
+
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM user_photos WHERE user_id = ?');
+        $stmt->execute([$userId]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function addUserPhoto(int $userId, string $photoUrl): array|false {
+        if (!$this->db) {
+            return false;
+        }
+
+        $count = $this->getUserPhotoCount($userId);
+        if ($count >= 10) {
+            $this->lastError = 'Photo limit reached';
+            return false;
+        }
+
+        $isPrimary = $count === 0 ? 1 : 0;
+        $displayOrder = $count + 1;
+
+        $stmt = $this->db->prepare(
+            'INSERT INTO user_photos (user_id, photo_url, is_primary, display_order, created_at)
+             VALUES (?, ?, ?, ?, NOW())'
+        );
+        $stmt->execute([$userId, $photoUrl, $isPrimary, $displayOrder]);
+
+        return [
+            'id' => (int)$this->db->lastInsertId(),
+            'photo_url' => $photoUrl,
+            'is_primary' => $isPrimary,
+            'display_order' => $displayOrder,
+        ];
+    }
+
+    public function setPrimaryPhoto(int $userId, int $photoId): bool {
+        if (!$this->db) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM user_photos WHERE user_id = ? AND photo_id = ?');
+        $stmt->execute([$userId, $photoId]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            return false;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare('UPDATE user_photos SET is_primary = 0 WHERE user_id = ?');
+            $stmt->execute([$userId]);
+
+            $stmt = $this->db->prepare('UPDATE user_photos SET is_primary = 1, display_order = 1 WHERE user_id = ? AND photo_id = ?');
+            $stmt->execute([$userId, $photoId]);
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return false;
+        }
+    }
+
+    public function deleteUserPhoto(int $userId, int $photoId): array|false {
+        if (!$this->db) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare('SELECT photo_url, is_primary FROM user_photos WHERE user_id = ? AND photo_id = ? LIMIT 1');
+        $stmt->execute([$userId, $photoId]);
+        $photo = $stmt->fetch();
+        if (!$photo) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare('DELETE FROM user_photos WHERE user_id = ? AND photo_id = ?');
+        $stmt->execute([$userId, $photoId]);
+
+        if (!empty($photo['is_primary'])) {
+            $stmt = $this->db->prepare(
+                'UPDATE user_photos
+                 SET is_primary = 1, display_order = 1
+                 WHERE user_id = ?
+                 ORDER BY display_order ASC, photo_id ASC
+                 LIMIT 1'
+            );
+            $stmt->execute([$userId]);
+        }
+
+        return $photo;
+    }
+
     public function getUserByEmail(string $email): array|false {
         if (!$this->db) {
             return false;
@@ -196,6 +314,95 @@ class UserDAL {
         $stmt->execute([$email]);
 
         return $stmt->fetch();
+    }
+
+    private function ensurePasswordResetTable(): bool {
+        if (!$this->db) {
+            return false;
+        }
+
+        try {
+            $this->db->exec(
+                'CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                    reset_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    token_hash CHAR(64) NOT NULL,
+                    expires_at DATETIME NOT NULL,
+                    used_at DATETIME NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_password_reset_user (user_id),
+                    UNIQUE KEY uq_password_reset_token_hash (token_hash)
+                )'
+            );
+            return true;
+        } catch (Throwable $e) {
+            $this->lastError = $e->getMessage();
+            return false;
+        }
+    }
+
+    public function createPasswordResetToken(int $userId, string $tokenHash, DateTimeInterface $expiresAt): bool {
+        if (!$this->ensurePasswordResetTable()) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_at)
+             VALUES (?, ?, ?, NOW())'
+        );
+
+        return $stmt->execute([$userId, $tokenHash, $expiresAt->format('Y-m-d H:i:s')]);
+    }
+
+    public function getValidPasswordReset(string $tokenHash): array|false {
+        if (!$this->ensurePasswordResetTable()) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT prt.reset_id, prt.user_id, u.email
+             FROM password_reset_tokens prt
+             JOIN users u ON u.user_id = prt.user_id
+             WHERE prt.token_hash = ?
+               AND prt.used_at IS NULL
+               AND prt.expires_at >= NOW()
+               AND u.status = "active"
+             LIMIT 1'
+        );
+        $stmt->execute([$tokenHash]);
+
+        return $stmt->fetch();
+    }
+
+    public function resetPasswordWithToken(string $tokenHash, string $passwordHash): bool {
+        if (!$this->ensurePasswordResetTable()) {
+            return false;
+        }
+
+        $reset = $this->getValidPasswordReset($tokenHash);
+        if (!$reset) {
+            return false;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE user_id = ?');
+            $stmt->execute([$passwordHash, (int)$reset['user_id']]);
+
+            $stmt = $this->db->prepare('UPDATE password_reset_tokens SET used_at = NOW() WHERE reset_id = ?');
+            $stmt->execute([(int)$reset['reset_id']]);
+
+            $stmt = $this->db->prepare('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL');
+            $stmt->execute([(int)$reset['user_id']]);
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return false;
+        }
     }
 
     public function createUser(string $email, string $passwordHash, string $name, string $dob, string $gender): int {

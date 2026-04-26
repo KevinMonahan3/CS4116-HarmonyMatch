@@ -58,6 +58,7 @@ CS4116-HarmonyMatch/
 5. Visit `http://localhost/harmonymatch/` for local development
 
 Set `APP_FORCE_HTTPS=true` only after your server is actually serving HTTPS. Otherwise the app stays on the current request scheme, which keeps plain local or pre-SSL deployments working.
+Set `APP_BASE_URL=https://harmonymatch.xyz` in production so password reset emails always use the public domain instead of a local/proxy host.
 
 `config/db.local.php` is gitignored, so real credentials stay local.
 

@@ -25,6 +25,7 @@ $ctrl    = new UserController();
 $profile = $ctrl->getProfile($userId) ?: [
   'name'          => 'Your Name',
   'profile_photo' => null,
+  'photos'        => [],
   'location'      => '',
   'bio'           => '',
   'genres'        => [],
@@ -67,29 +68,20 @@ include __DIR__ . '/includes/header.php';
     <div class="hm-card" style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px;">
 
       <!-- Avatar -->
-      <div style="flex-shrink:0;text-align:center;">
-        <div class="profile-photo-lg" style="margin:0 auto 12px;">
+      <div style="flex-shrink:0;text-align:center;max-width:280px;">
+        <div class="profile-photo-lg" id="primaryPhotoPreview" style="margin:0 auto 12px;">
           <?php if ($profile['profile_photo']): ?>
             <img src="<?= htmlspecialchars($profile['profile_photo']) ?>" alt="Your photo">
           <?php else: ?>
             <div class="avatar-placeholder"><?= htmlspecialchars(substr($profile['name'], 0, 1)) ?></div>
           <?php endif; ?>
         </div>
-        <!--
-          DB CONNECTION POINT — Photo Upload
-          ─────────────────────────────────────────────────────────
-          Wire this input to POST /api/users.php?action=upload_photo
-          using FormData + fetch (multipart/form-data).
-          UserController::uploadPhoto():
-            → validates file type / size
-            → moves to /assets/img/uploads/<userId>.jpg
-            → UserDAL::updatePhoto($userId, $path)
-          ─────────────────────────────────────────────────────────
-        -->
         <label class="btn-outline" style="font-size:13px;cursor:pointer;">
-          <i class="fas fa-camera"></i> Change Photo
+          <i class="fas fa-camera"></i> Add Photo
           <input type="file" id="photoInput" accept="image/*" style="display:none;">
         </label>
+        <p id="photoMsg" style="display:none;font-size:13.5px;margin-top:10px;"></p>
+        <p style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">Up to 10 photos, 3MB each.</p>
       </div>
 
       <!-- Edit form -->
@@ -134,6 +126,30 @@ include __DIR__ . '/includes/header.php';
 
         </form>
       </div>
+    </div>
+
+    <div class="hm-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+        <h3 style="margin:0;">Photos</h3>
+        <span id="photoCount" style="font-size:13px;color:var(--text-secondary);"><?= count($profile['photos'] ?? []) ?>/10 uploaded</span>
+      </div>
+      <div class="photo-grid" id="photoGrid">
+        <?php foreach (($profile['photos'] ?? []) as $photo): ?>
+          <div class="photo-tile" data-photo-id="<?= (int)$photo['id'] ?>">
+            <img src="<?= htmlspecialchars((string)$photo['photo_url']) ?>" alt="Profile photo">
+            <?php if (!empty($photo['is_primary'])): ?>
+              <span class="photo-badge">Primary</span>
+            <?php endif; ?>
+            <div class="photo-actions">
+              <?php if (empty($photo['is_primary'])): ?>
+                <button type="button" class="photo-action" data-action="primary" title="Set as primary"><i class="fas fa-star"></i></button>
+              <?php endif; ?>
+              <button type="button" class="photo-action danger" data-action="delete" title="Delete photo"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+      <p id="photoEmpty" style="<?= empty($profile['photos']) ? '' : 'display:none;' ?>color:var(--text-muted);font-size:13px;">No photos uploaded yet.</p>
     </div>
 
     <div id="preferences" class="hm-card" style="margin-bottom:16px;">
@@ -337,6 +353,106 @@ include __DIR__ . '/includes/header.php';
 </style>
 
 <script>
+  function setPhotoMessage(message, ok = true) {
+    const msg = document.getElementById('photoMsg');
+    if (!msg) return;
+    msg.textContent = message;
+    msg.style.display = 'block';
+    msg.style.color = ok ? 'var(--accent-green)' : 'var(--accent-red)';
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    }[char]));
+  }
+
+  function renderPhotos(photos) {
+    const grid = document.getElementById('photoGrid');
+    const empty = document.getElementById('photoEmpty');
+    const count = document.getElementById('photoCount');
+    const preview = document.getElementById('primaryPhotoPreview');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    photos.forEach(photo => {
+      const tile = document.createElement('div');
+      tile.className = 'photo-tile';
+      tile.dataset.photoId = photo.id;
+      tile.innerHTML = `
+        <img src="${escapeHtml(photo.photo_url)}" alt="Profile photo">
+        ${Number(photo.is_primary) ? '<span class="photo-badge">Primary</span>' : ''}
+        <div class="photo-actions">
+          ${Number(photo.is_primary) ? '' : '<button type="button" class="photo-action" data-action="primary" title="Set as primary"><i class="fas fa-star"></i></button>'}
+          <button type="button" class="photo-action danger" data-action="delete" title="Delete photo"><i class="fas fa-trash"></i></button>
+        </div>
+      `;
+      grid.appendChild(tile);
+    });
+
+    if (empty) empty.style.display = photos.length ? 'none' : 'block';
+    if (count) count.textContent = `${photos.length}/10 uploaded`;
+
+    const primary = photos.find(photo => Number(photo.is_primary)) || photos[0];
+    if (preview) {
+      preview.innerHTML = primary
+        ? `<img src="${escapeHtml(primary.photo_url)}" alt="Your photo">`
+        : `<div class="avatar-placeholder"><?= htmlspecialchars(substr($profile['name'], 0, 1)) ?></div>`;
+    }
+  }
+
+  document.getElementById('photoInput')?.addEventListener('change', async event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const body = new FormData();
+    body.append('action', 'upload_photo');
+    body.append('photo', file);
+
+    const res = await fetch('/api/users.php', { method: 'POST', body });
+    const data = await res.json();
+    event.target.value = '';
+
+    if (!data.success) {
+      setPhotoMessage(data.error || 'Unable to upload photo.', false);
+      return;
+    }
+
+    renderPhotos(data.photos || []);
+    setPhotoMessage('Photo uploaded.');
+  });
+
+  document.getElementById('photoGrid')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-action]');
+    if (!button) return;
+
+    const tile = button.closest('[data-photo-id]');
+    const photoId = tile?.dataset.photoId;
+    if (!photoId) return;
+
+    const action = button.dataset.action;
+    if (action === 'delete' && !confirm('Delete this photo?')) {
+      return;
+    }
+
+    const data = await apiPost('/api/users.php', {
+      action: action === 'primary' ? 'set_primary_photo' : 'delete_photo',
+      photo_id: photoId,
+    });
+
+    if (!data.success) {
+      setPhotoMessage(data.error || 'Unable to update photo.', false);
+      return;
+    }
+
+    renderPhotos(data.photos || []);
+    setPhotoMessage(action === 'primary' ? 'Primary photo updated.' : 'Photo deleted.');
+  });
+
   async function musicSearch(action, params) {
     const query = new URLSearchParams({ action, ...params });
     const res = await fetch(`/api/music.php?${query.toString()}`);

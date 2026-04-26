@@ -29,6 +29,23 @@ switch ($action) {
         echo json_encode($auth->register($email, $password, $name, $dob, $gender));
         break;
 
+    case 'request_password_reset':
+        $email = trim($_POST['email'] ?? '');
+        echo json_encode($auth->requestPasswordReset($email));
+        break;
+
+    case 'validate_reset_token':
+        $token = trim($_GET['token'] ?? $_POST['token'] ?? '');
+        echo json_encode($auth->validateResetToken($token));
+        break;
+
+    case 'reset_password':
+        $token = trim($_POST['token'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirm = $_POST['confirm'] ?? '';
+        echo json_encode($auth->resetPassword($token, $password, $confirm));
+        break;
+
     case 'logout':
         $redirect = !empty($_SESSION['is_admin']) ? '/admin-login.php' : '/login.php';
         $auth->logout();

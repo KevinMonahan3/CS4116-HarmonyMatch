@@ -206,6 +206,7 @@ if (!empty($_SESSION['user_id'])) {
         <!-- LOGIN FORM -->
         <div id="login-form">
           <p class="error-msg" id="loginError"></p>
+          <p class="success-msg" id="resetRequestSuccess"></p>
           <div class="field">
             <label class="field-label">Email Address</label>
             <div class="input-wrap">
@@ -223,12 +224,31 @@ if (!empty($_SESSION['user_id'])) {
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
             <label class="check-row"><input type="checkbox" /> Remember me</label>
+            <a class="form-link" onclick="showForgotPassword()">Forgot password?</a>
           </div>
           <button class="btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;font-size:16px;padding:14px;">
             <i class="fas fa-sign-in-alt"></i> Sign In
           </button>
           <p style="text-align:center;font-size:13.5px;color:var(--text-secondary);margin-top:20px;">
             New here? <a class="form-link" onclick="switchTab('reg')">Create an account</a>
+          </p>
+        </div>
+
+        <div id="forgot-form" style="display:none;">
+          <p class="error-msg" id="forgotError"></p>
+          <p class="success-msg" id="forgotSuccess"></p>
+          <div class="field">
+            <label class="field-label">Email Address</label>
+            <div class="input-wrap">
+              <i class="fas fa-envelope"></i>
+              <input class="field-input" type="email" id="forgotEmail" placeholder="you@example.com" />
+            </div>
+          </div>
+          <button class="btn-primary" onclick="requestPasswordReset()" style="width:100%;justify-content:center;font-size:16px;padding:14px;">
+            <i class="fas fa-paper-plane"></i> Send Reset Link
+          </button>
+          <p style="text-align:center;font-size:13.5px;color:var(--text-secondary);margin-top:20px;">
+            <a class="form-link" onclick="switchTab('login')">Back to login</a>
           </p>
         </div>
 
@@ -321,9 +341,20 @@ if (!empty($_SESSION['user_id'])) {
     function switchTab(tab) {
       document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
       document.getElementById('reg-form').style.display   = tab === 'reg'   ? 'block' : 'none';
+      document.getElementById('forgot-form').style.display = 'none';
       document.getElementById('tab-login').classList.toggle('active', tab === 'login');
       document.getElementById('tab-reg').classList.toggle('active',   tab === 'reg');
       document.getElementById('formTitle').textContent = tab === 'login' ? 'Welcome back' : 'Create account';
+    }
+
+    function showForgotPassword() {
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('reg-form').style.display = 'none';
+      document.getElementById('forgot-form').style.display = 'block';
+      document.getElementById('tab-login').classList.add('active');
+      document.getElementById('tab-reg').classList.remove('active');
+      document.getElementById('formTitle').textContent = 'Reset password';
+      document.getElementById('forgotEmail').value = document.getElementById('loginEmail').value.trim();
     }
 
     async function doLogin() {
@@ -425,11 +456,37 @@ if (!empty($_SESSION['user_id'])) {
       }
     }
 
+    async function requestPasswordReset() {
+      const email = document.getElementById('forgotEmail').value.trim();
+      const errEl = document.getElementById('forgotError');
+      const sucEl = document.getElementById('forgotSuccess');
+      errEl.style.display = 'none';
+      sucEl.style.display = 'none';
+
+      const res = await fetch('/api/auth.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=request_password_reset&email=${encodeURIComponent(email)}`
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        errEl.textContent = data.error || 'Unable to request a reset link.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      sucEl.textContent = data.message || 'If that email exists, a reset link has been sent.';
+      sucEl.style.display = 'block';
+    }
+
     // Allow Enter key to submit
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
+        const forgotVisible = document.getElementById('forgot-form').style.display !== 'none';
         const loginVisible = document.getElementById('login-form').style.display !== 'none';
-        loginVisible ? doLogin() : doRegister();
+        if (forgotVisible) requestPasswordReset();
+        else loginVisible ? doLogin() : doRegister();
       }
     });
   </script>
