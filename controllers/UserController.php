@@ -249,42 +249,6 @@ class UserController {
         return ['success' => true];
     }
 
-    public function uploadPhoto(int $userId, array $file): array {
-        if (!isset($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
-            return ['success' => false, 'error' => 'Upload failed'];
-        }
-
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        $mime = mime_content_type($file['tmp_name']);
-        if (!in_array($mime, $allowedMimes, true)) {
-            return ['success' => false, 'error' => 'Only JPEG, PNG, WebP, or GIF images are allowed'];
-        }
-
-        if ($file['size'] > 5 * 1024 * 1024) {
-            return ['success' => false, 'error' => 'Image must be under 5 MB'];
-        }
-
-        $ext = match ($mime) {
-            'image/jpeg' => 'jpg',
-            'image/png'  => 'png',
-            'image/webp' => 'webp',
-            'image/gif'  => 'gif',
-        };
-
-        $uploadDir = __DIR__ . '/../assets/img/uploads/';
-        $filename  = 'user_' . $userId . '.' . $ext;
-        $destPath  = $uploadDir . $filename;
-
-        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
-            return ['success' => false, 'error' => 'Could not save image'];
-        }
-
-        $photoUrl = '/assets/img/uploads/' . $filename;
-        $this->userDAL->updateProfile($userId, ['profile_photo' => $photoUrl]);
-
-        return ['success' => true, 'photo_url' => $photoUrl];
-    }
-
     public function completeOnboarding(int $userId): array {
         $this->userDAL->updateOnboardingComplete($userId);
         return ['success' => true, 'redirect' => 'dashboard.php'];
