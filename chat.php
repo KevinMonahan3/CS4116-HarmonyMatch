@@ -202,7 +202,10 @@ include __DIR__ . '/includes/header.php';
          <i class="fas fa-chevron-left"></i>
        </button>
        ${avatarHtml(name, photo, 36)}
-       <strong style="margin-left:8px;">${escHtml(name)}</strong>`;
+       <strong style="margin-left:8px;">${escHtml(name)}</strong>
+       <button class="btn-outline chat-report-btn" type="button" onclick="reportUser(${Number(userId)})" title="Report user">
+         <i class="fas fa-flag"></i> Report
+       </button>`;
 
     document.getElementById('chatPanel').style.display = '';
 

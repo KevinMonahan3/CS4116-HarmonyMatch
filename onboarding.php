@@ -104,6 +104,7 @@ include __DIR__ . '/includes/header.php';
         <div class="form-group">
           <label class="form-label">Looking For</label>
           <select name="seeking_type" class="form-input">
+            <option value="open_to_anything" <?= ($profile['seeking_type'] ?? '') === 'open_to_anything' ? 'selected' : '' ?>>Open to anything</option>
             <option value="dating" <?= ($profile['seeking_type'] ?? 'dating') === 'dating' ? 'selected' : '' ?>>Dating</option>
             <option value="friendship" <?= ($profile['seeking_type'] ?? '') === 'friendship' ? 'selected' : '' ?>>Friendship</option>
             <option value="music_buddy" <?= ($profile['seeking_type'] ?? '') === 'music_buddy' ? 'selected' : '' ?>>Music Buddy</option>

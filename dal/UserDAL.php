@@ -79,7 +79,11 @@ class UserDAL {
 
     private function normalizeSeekingType(?string $value): string {
         $value = strtolower(trim((string)$value));
-        $allowed = ['friendship', 'dating', 'networking', 'music_buddy'];
+        if (in_array($value, ['anything', 'open', 'all'], true)) {
+            $value = 'open_to_anything';
+        }
+
+        $allowed = ['open_to_anything', 'friendship', 'dating', 'networking', 'music_buddy'];
         return in_array($value, $allowed, true) ? $value : 'dating';
     }
 

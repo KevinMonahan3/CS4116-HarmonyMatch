@@ -23,7 +23,9 @@ $preferenceSummary = implode(' · ', array_filter([
         'same_country' => 'same country',
         default => 'any location',
     },
-    !empty($viewerProfile['seeking_type']) ? ucfirst(str_replace('_', ' ', (string)$viewerProfile['seeking_type'])) : null,
+    !empty($viewerProfile['seeking_type'])
+        ? ucfirst(str_replace('_', ' ', (string)$viewerProfile['seeking_type']))
+        : null,
 ]));
 
 $pageTitle = 'Dashboard';
