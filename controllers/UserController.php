@@ -68,9 +68,6 @@ class UserController {
             if ($compatibility < $minCompatibility) {
                 continue;
             }
-            if (!$this->matchController->isDiscoverEligible($currentUserId, $user)) {
-                continue;
-            }
 
             $user['age'] = $age;
             $user['compatibility'] = $compatibility;

@@ -65,27 +65,27 @@ include __DIR__ . '/includes/header.php';
     </div>
 
     <!-- Profile photo + basic info -->
-    <div class="hm-card" style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px;">
+    <div class="hm-card own-profile-card">
 
       <!-- Avatar -->
-      <div style="flex-shrink:0;text-align:center;max-width:280px;">
-        <div class="profile-photo-lg" id="primaryPhotoPreview" style="margin:0 auto 12px;">
+      <div class="own-photo-panel">
+        <div class="profile-photo-lg own-photo-preview" id="primaryPhotoPreview">
           <?php if ($profile['profile_photo']): ?>
             <img src="<?= htmlspecialchars($profile['profile_photo']) ?>" alt="Your photo">
           <?php else: ?>
             <div class="avatar-placeholder"><?= htmlspecialchars(substr($profile['name'], 0, 1)) ?></div>
           <?php endif; ?>
         </div>
-        <label class="btn-outline" style="font-size:13px;cursor:pointer;">
+        <label class="btn-outline own-photo-button">
           <i class="fas fa-camera"></i> Add Photo
           <input type="file" id="photoInput" accept="image/*" style="display:none;">
         </label>
-        <p id="photoMsg" style="display:none;font-size:13.5px;margin-top:10px;"></p>
-        <p style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">Up to 10 photos, 3MB each.</p>
+        <p id="photoMsg" class="own-photo-msg"></p>
+        <p class="own-photo-hint">Up to 10 photos, 3MB each.</p>
       </div>
 
       <!-- Edit form -->
-      <div style="flex:1;min-width:220px;">
+      <div class="own-profile-form">
         <form id="profileForm">
 
           <div class="form-group">
