@@ -275,6 +275,7 @@ if (!empty($_SESSION['user_id'])) {
           </div>
           <div class="field">
             <label class="field-label">Date of Birth</label>
+            <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:6px;">You must be at least 18 years old to register.</div>
             <input class="field-input" type="date" id="regDob" />
           </div>
           <div class="field">
@@ -286,6 +287,19 @@ if (!empty($_SESSION['user_id'])) {
               <option value="non-binary">Non-binary</option>
               <option value="other">Other</option>
             </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Profile Photo</label>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div id="regPhotoPreview" style="width:54px;height:54px;border-radius:50%;border:1px solid var(--border);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;color:var(--text-muted);overflow:hidden;flex-shrink:0;">
+                <i class="fas fa-user"></i>
+              </div>
+              <label class="btn-outline" style="font-size:13px;cursor:pointer;">
+                <i class="fas fa-camera"></i> Add Photo
+                <input type="file" id="regPhoto" accept="image/*" style="display:none;">
+              </label>
+            </div>
+            <div style="font-size:12.5px;color:var(--text-muted);margin-top:6px;">Optional. JPG, PNG, or WEBP up to 3MB.</div>
           </div>
           <div class="field">
             <label class="field-label">Password</label>
@@ -411,6 +425,15 @@ if (!empty($_SESSION['user_id'])) {
       return age;
     }
 
+    document.getElementById('regPhoto')?.addEventListener('change', () => {
+      const file = document.getElementById('regPhoto').files?.[0];
+      const preview = document.getElementById('regPhotoPreview');
+      if (!file || !preview) return;
+
+      const url = URL.createObjectURL(file);
+      preview.innerHTML = `<img src="${url}" alt="Profile preview" style="width:100%;height:100%;object-fit:cover;">`;
+    });
+
     async function doRegister() {
       const firstName = document.getElementById('regFirstName').value.trim();
       const lastName  = document.getElementById('regLastName').value.trim();
@@ -420,6 +443,7 @@ if (!empty($_SESSION['user_id'])) {
       const password  = document.getElementById('regPassword').value;
       const confirm   = document.getElementById('regConfirm').value;
       const terms     = document.getElementById('regTerms').checked;
+      const photo     = document.getElementById('regPhoto').files?.[0] || null;
       const errEl     = document.getElementById('regError');
       const sucEl     = document.getElementById('regSuccess');
 
@@ -440,10 +464,20 @@ if (!empty($_SESSION['user_id'])) {
       if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
       if (!terms)               { errEl.textContent = 'Please agree to the terms.'; errEl.style.display = 'block'; return; }
 
+      const formData = new FormData();
+      formData.append('action', 'register');
+      formData.append('name', firstName + ' ' + lastName);
+      formData.append('email', email);
+      formData.append('dob', dob);
+      formData.append('gender', gender);
+      formData.append('password', password);
+      if (photo) {
+        formData.append('photo', photo);
+      }
+
       const res  = await fetch('/api/auth.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=register&name=${encodeURIComponent(firstName + ' ' + lastName)}&email=${encodeURIComponent(email)}&dob=${encodeURIComponent(dob)}&gender=${encodeURIComponent(gender)}&password=${encodeURIComponent(password)}`
+        body: formData
       });
       const data = await res.json();
       if (data.success) {

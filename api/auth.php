@@ -26,7 +26,7 @@ switch ($action) {
         $name     = trim($_POST['name'] ?? '');
         $dob      = $_POST['dob'] ?? '';
         $gender   = $_POST['gender'] ?? '';
-        echo json_encode($auth->register($email, $password, $name, $dob, $gender));
+        echo json_encode($auth->registerWithPhoto($email, $password, $name, $dob, $gender, $_FILES['photo'] ?? []));
         break;
 
     case 'request_password_reset':

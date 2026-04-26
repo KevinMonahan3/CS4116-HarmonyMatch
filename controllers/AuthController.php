@@ -48,6 +48,21 @@ class AuthController {
         return ['success' => true, 'user_id' => $id];
     }
 
+    public function registerWithPhoto(string $email, string $password, string $name, string $dob, string $gender, array $file): array {
+        $result = $this->register($email, $password, $name, $dob, $gender);
+        if (empty($result['success']) || empty($result['user_id']) || empty($file)) {
+            return $result;
+        }
+
+        require_once __DIR__ . '/UserController.php';
+        $photoResult = (new UserController())->uploadPhoto((int)$result['user_id'], $file);
+        if (empty($photoResult['success'])) {
+            $result['photo_warning'] = $photoResult['error'] ?? 'Account created, but photo upload failed';
+        }
+
+        return $result;
+    }
+
     private function isAdult(string $dob): bool {
         $dob = trim($dob);
         if ($dob === '') {

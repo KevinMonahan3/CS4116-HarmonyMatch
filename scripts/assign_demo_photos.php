@@ -7,6 +7,19 @@ if (!$db) {
     exit(1);
 }
 
+$sourceArg = $argv[1] ?? 'avatars';
+$sourceDir = realpath($sourceArg);
+if ($sourceDir === false) {
+    $sourceDir = realpath(__DIR__ . '/../' . $sourceArg);
+}
+if ($sourceDir === false) {
+    $sourceDir = realpath(__DIR__ . '/../assets/img/uploads');
+}
+if ($sourceDir === false) {
+    fwrite(STDERR, "Source folder not found. Pass a folder path, or add images to avatars/.\n");
+    exit(1);
+}
+
 $uploadDir = realpath(__DIR__ . '/../assets/img/uploads');
 if ($uploadDir === false) {
     $uploadDir = __DIR__ . '/../assets/img/uploads';
@@ -16,22 +29,21 @@ if ($uploadDir === false) {
     }
 }
 
-$allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-$files = array_values(array_filter(glob($uploadDir . '/*') ?: [], static function (string $path) use ($allowedExtensions): bool {
+$allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
+$files = array_values(array_filter(glob($sourceDir . '/*') ?: [], static function (string $path) use ($allowedExtensions): bool {
     if (!is_file($path)) {
         return false;
     }
 
     $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-    return in_array($extension, $allowedExtensions, true)
-        && preg_match('/^demo[-_]/i', basename($path));
+    return in_array($extension, $allowedExtensions, true);
 }));
 
 sort($files, SORT_NATURAL | SORT_FLAG_CASE);
 $files = array_slice($files, 0, 10);
 
 if (count($files) < 1) {
-    fwrite(STDERR, "No demo images found. Add files named demo-1.jpg, demo-2.png, etc. to assets/img/uploads/.\n");
+    fwrite(STDERR, "No images found in {$sourceDir}.\n");
     exit(1);
 }
 
