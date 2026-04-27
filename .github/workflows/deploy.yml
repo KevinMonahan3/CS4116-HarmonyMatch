@@ -49,8 +49,18 @@ jobs:
             sudo mkdir -p /var/www/harmonymatch
             sudo rsync -rlptDz --delete /home/${{ secrets.SSH_USER }}/harmonymatch-staging/ /var/www/harmonymatch/
             sudo rm -rf /home/${{ secrets.SSH_USER }}/harmonymatch-staging
+            sudo mkdir -p /var/www/harmonymatch-shared/config /var/www/harmonymatch-shared/uploads /var/www/harmonymatch/assets/img
+            if [ -f /var/www/harmonymatch-shared/config/resend.local.php ]; then
+              sudo ln -sfn /var/www/harmonymatch-shared/config/resend.local.php /var/www/harmonymatch/config/resend.local.php
+            fi
+            sudo rm -rf /var/www/harmonymatch/assets/img/uploads
+            sudo ln -sfn /var/www/harmonymatch-shared/uploads /var/www/harmonymatch/assets/img/uploads
             sudo chown -R www-data:www-data /var/www/harmonymatch
+            sudo chown -R www-data:www-data /var/www/harmonymatch-shared
             sudo chmod 640 /var/www/harmonymatch/config/db.local.php
+            if [ -f /var/www/harmonymatch/config/resend.local.php ]; then
+              sudo chmod 640 /var/www/harmonymatch/config/resend.local.php
+            fi
             sudo nginx -t
             sudo systemctl reload nginx
             sudo systemctl restart php8.1-fpm
