@@ -11,8 +11,15 @@ class AdminController {
         $this->reportDAL = new ReportDAL();
     }
 
-    public function getAllUsers(): array {
-        return $this->userDAL->getAllUsers();
+    public function getAllUsers(int $limit = 50, int $offset = 0): array {
+        return $this->userDAL->getAllUsers($limit, $offset);
+    }
+
+    public function getUserStats(): array {
+        return [
+            'total' => $this->userDAL->countAllUsers(),
+            'active' => $this->userDAL->countActiveUsers(),
+        ];
     }
 
     public function suspendUser(int $adminId, int $targetId): array {

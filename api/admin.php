@@ -12,7 +12,9 @@ $ctrl    = new AdminController();
 
 switch ($action) {
     case 'users':
-        echo json_encode($ctrl->getAllUsers());
+        $page = max(1, (int)($_GET['page'] ?? $_POST['page'] ?? 1));
+        $perPage = max(5, min(100, (int)($_GET['per_page'] ?? $_POST['per_page'] ?? 25)));
+        echo json_encode($ctrl->getAllUsers($perPage, ($page - 1) * $perPage));
         break;
 
     case 'suspend':

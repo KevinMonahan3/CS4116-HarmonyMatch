@@ -1305,6 +1305,45 @@ input[type="range"]::-webkit-slider-thumb {
   min-width: 180px;
 }
 
+.admin-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-pagination .disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.admin-page-numbers {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.admin-page-link {
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-page-link.active {
+  color: #fff;
+  background: var(--accent-purple);
+  border-color: rgba(124,58,237,0.8);
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

@@ -621,6 +621,22 @@ class UserDAL {
         return $stmt->fetchAll();
     }
 
+    public function countAllUsers(): int {
+        if (!$this->db) {
+            return 0;
+        }
+
+        return (int)$this->db->query('SELECT COUNT(*) FROM users')->fetchColumn();
+    }
+
+    public function countActiveUsers(): int {
+        if (!$this->db) {
+            return 0;
+        }
+
+        return (int)$this->db->query('SELECT COUNT(*) FROM users WHERE status = "active"')->fetchColumn();
+    }
+
     public function searchUsers(array $filters): array {
         if (!$this->db) {
             return [];

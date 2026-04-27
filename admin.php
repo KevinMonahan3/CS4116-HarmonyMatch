@@ -28,7 +28,13 @@ AuthController::requireAdmin(); // Redirects non-admins to dashboard
 */
 
 $ctrl    = new AdminController();
-$users   = $ctrl->getAllUsers();
+$userPage = max(1, (int)($_GET['user_page'] ?? 1));
+$usersPerPage = 15;
+$userStats = $ctrl->getUserStats();
+$totalUsers = (int)$userStats['total'];
+$totalUserPages = max(1, (int)ceil($totalUsers / $usersPerPage));
+$userPage = min($userPage, $totalUserPages);
+$users   = $ctrl->getAllUsers($usersPerPage, ($userPage - 1) * $usersPerPage);
 $reportStatus = (string)($_GET['report_status'] ?? 'pending');
 $reportQuery = trim((string)($_GET['report_query'] ?? ''));
 $reports = $ctrl->getPendingReports($reportStatus, $reportQuery);
@@ -57,11 +63,11 @@ include __DIR__ . '/includes/header.php';
     <!-- Stats row -->
     <div class="stats-row" style="margin-bottom:24px;">
       <div class="hm-card stat-card">
-        <div class="stat-value"><?= count($users) ?></div>
+        <div class="stat-value"><?= $totalUsers ?></div>
         <div class="stat-label">Total Users</div>
       </div>
       <div class="hm-card stat-card">
-        <div class="stat-value"><?= count(array_filter($users, fn($u) => $u['is_active'])) ?></div>
+        <div class="stat-value"><?= (int)$userStats['active'] ?></div>
         <div class="stat-label">Active Users</div>
       </div>
       <div class="hm-card stat-card">
@@ -73,7 +79,12 @@ include __DIR__ . '/includes/header.php';
     <!-- Users table -->
     <div class="hm-card" style="margin-bottom:20px;overflow-x:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="margin:0;">All Users</h3>
+        <div>
+          <h3 style="margin:0;">All Users</h3>
+          <p style="color:var(--text-secondary);font-size:13px;margin-top:4px;">
+            Page <?= $userPage ?> of <?= $totalUserPages ?> · showing <?= count($users) ?> of <?= $totalUsers ?> users
+          </p>
+        </div>
         <div style="position:relative;">
           <i class="fas fa-search" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px;"></i>
           <input type="text" id="userSearch" class="form-input" placeholder="Search users…"
@@ -143,6 +154,33 @@ include __DIR__ . '/includes/header.php';
         <?php endforeach; ?>
         </tbody>
       </table>
+      <?php if ($totalUserPages > 1): ?>
+        <?php
+          $pageQuery = $_GET;
+          unset($pageQuery['user_page']);
+          $baseQuery = http_build_query($pageQuery);
+          $pageUrl = static function (int $page) use ($baseQuery): string {
+              return '/admin.php?' . ($baseQuery !== '' ? $baseQuery . '&' : '') . 'user_page=' . $page;
+          };
+        ?>
+        <div class="admin-pagination">
+          <a class="btn-outline <?= $userPage <= 1 ? 'disabled' : '' ?>" href="<?= $userPage <= 1 ? '#' : htmlspecialchars($pageUrl($userPage - 1)) ?>">
+            <i class="fas fa-chevron-left"></i> Previous
+          </a>
+          <div class="admin-page-numbers">
+            <?php
+              $startPage = max(1, $userPage - 2);
+              $endPage = min($totalUserPages, $userPage + 2);
+              for ($page = $startPage; $page <= $endPage; $page++):
+            ?>
+              <a class="admin-page-link <?= $page === $userPage ? 'active' : '' ?>" href="<?= htmlspecialchars($pageUrl($page)) ?>"><?= $page ?></a>
+            <?php endfor; ?>
+          </div>
+          <a class="btn-outline <?= $userPage >= $totalUserPages ? 'disabled' : '' ?>" href="<?= $userPage >= $totalUserPages ? '#' : htmlspecialchars($pageUrl($userPage + 1)) ?>">
+            Next <i class="fas fa-chevron-right"></i>
+          </a>
+        </div>
+      <?php endif; ?>
     </div>
 
     <!-- Reports table -->
