@@ -258,7 +258,7 @@ include __DIR__ . '/includes/header.php';
                 -->
                 <button class="btn-primary" style="font-size:12px;padding:7px 12px;"
                         onclick="resolveReport(<?= $r['id'] ?>, 'actioned')">
-                  <i class="fas fa-gavel"></i> Action
+                  <i class="fas fa-ban"></i> Suspend User
                 </button>
                 <button class="btn-outline" style="font-size:12px;padding:7px 12px;"
                         onclick="resolveReport(<?= $r['id'] ?>, 'dismissed')">
