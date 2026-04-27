@@ -144,6 +144,11 @@ include __DIR__ . '/includes/header.php';
     return `<div class="inbox-avatar" style="width:${size}px;height:${size}px;font-size:${size * 0.4}px;flex-shrink:0;">${initial}</div>`;
   }
 
+  function containsPhoneNumber(content) {
+    const digits = String(content ?? '').replace(/[^\d]/g, '');
+    return digits.length >= 8 || /(?:\+\d[\d\s().-]{6,}\d)/.test(String(content ?? ''));
+  }
+
   /* ── Inbox ── */
   async function loadInbox() {
     const list = document.getElementById('inboxList');
@@ -258,6 +263,10 @@ include __DIR__ . '/includes/header.php';
     const input = document.getElementById('msgInput');
     const content = input.value.trim();
     if (!content || !activeUserId) return;
+    if (containsPhoneNumber(content)) {
+      alert('Phone numbers are not allowed in chat. Please keep messages on HarmonyMatch.');
+      return;
+    }
 
     const response = await apiPost('/api/messages.php', { action: 'send', to_user_id: activeUserId, content });
     if (!response || response.error) {

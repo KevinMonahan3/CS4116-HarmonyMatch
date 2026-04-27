@@ -266,11 +266,15 @@ class MessageDAL {
     }
 
     private function containsPhoneNumber(string $content): bool {
-        $normalized = preg_replace('/[^\d+]/', '', $content) ?? '';
-        if ($normalized === '') {
+        $digitsOnly = preg_replace('/\D/', '', $content) ?? '';
+        if ($digitsOnly === '') {
             return false;
         }
 
-        return preg_match('/(?:\+?\d[\d]{7,})/', $normalized) === 1;
+        if (strlen($digitsOnly) >= 8) {
+            return true;
+        }
+
+        return preg_match('/(?:\+\d[\d\s().-]{6,}\d)/', $content) === 1;
     }
 }
