@@ -50,6 +50,9 @@ jobs:
             sudo rsync -rlptDz --delete /home/${{ secrets.SSH_USER }}/harmonymatch-staging/ /var/www/harmonymatch/
             sudo rm -rf /home/${{ secrets.SSH_USER }}/harmonymatch-staging
             sudo mkdir -p /var/www/harmonymatch-shared/config /var/www/harmonymatch-shared/uploads /var/www/harmonymatch/assets/img
+            if [ -f /var/www/harmonymatch-shared/config/db.local.php ]; then
+              sudo ln -sfn /var/www/harmonymatch-shared/config/db.local.php /var/www/harmonymatch/config/db.local.php
+            fi
             if [ -f /var/www/harmonymatch-shared/config/resend.local.php ]; then
               sudo ln -sfn /var/www/harmonymatch-shared/config/resend.local.php /var/www/harmonymatch/config/resend.local.php
             fi
