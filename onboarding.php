@@ -134,16 +134,6 @@ include __DIR__ . '/includes/header.php';
 
       <p id="step1Error" style="color:#ef4444;font-size:13.5px;margin-bottom:12px;display:none;"></p>
 
-      <!--
-        DB CONNECTION POINT — Save Personal Details (Step 1)
-        ─────────────────────────────────────────────────────────
-        On submit, POST to /api/users.php?action=update_profile with:
-          { name, dob, location, bio }
-        UserController::updateProfile($userId, $data):
-          → UserDAL::update($userId, [...]) — UPDATE users SET ...
-        On success, show step 2.
-        ─────────────────────────────────────────────────────────
-      -->
       <button type="submit" class="btn-primary" style="width:100%;justify-content:center;padding:13px;">
         Next <i class="fas fa-arrow-right"></i>
       </button>
@@ -163,16 +153,6 @@ include __DIR__ . '/includes/header.php';
       <!-- Genres -->
       <div class="form-group">
         <label class="form-label">Favourite Genres <span style="font-weight:400;color:var(--text-muted);">(pick at least 2)</span></label>
-        <!--
-          DB CONNECTION POINT — Genre list
-          ─────────────────────────────────────────────────────────
-          Populate via onboarding.js:
-            fetch('/api/users.php?action=genres') → MusicDAL::getAllGenres()
-          Returns: [{ id, name }]
-          onboarding.js renders each as a .genre-chip with data-id attribute.
-          On click, toggle 'selected' class and track selected IDs in an array.
-          ─────────────────────────────────────────────────────────
-        -->
         <div class="genre-grid" id="genreList">
           <?php foreach ($genres as $genre): ?>
             <div
@@ -211,19 +191,6 @@ include __DIR__ . '/includes/header.php';
 
       <p id="step2Error" style="color:#ef4444;font-size:13.5px;margin-bottom:12px;display:none;"></p>
 
-      <!--
-        DB CONNECTION POINT — Save Music Taste (Step 2)
-        ─────────────────────────────────────────────────────────
-        On submit, POST to /api/users.php?action=update_music with:
-          { genre_ids: [1,3,5], artists: ['Arctic Monkeys',...], songs: ['Do I Wanna Know',...] }
-        UserController::updateMusicTaste($userId, $data):
-          → MusicDAL::setGenres($userId, $genreIds)
-             DELETE FROM user_genres WHERE user_id=:id; INSERT ...
-          → MusicDAL::setArtists($userId, $artistNames)
-          → MusicDAL::setSongs($userId, $songNames)
-        On success, show step 3.
-        ─────────────────────────────────────────────────────────
-      -->
       <div style="display:flex;gap:12px;">
         <button type="button" class="btn-outline" onclick="goToStep(1)" style="flex:0 0 auto;">
           <i class="fas fa-arrow-left"></i> Back
@@ -256,7 +223,7 @@ include __DIR__ . '/includes/header.php';
     </a>
   </div>
 
-</div><!-- /container -->
+</div>
 
 <style>
   @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }

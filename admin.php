@@ -8,24 +8,6 @@ require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/AdminController.php';
 AuthController::requireAdmin(); // Redirects non-admins to dashboard
 
-/*
-  DB CONNECTION POINT — Admin Data
-  ─────────────────────────────────────────────────────────
-  AdminController::getAllUsers():
-    → AdminDAL::getAllUsers()
-      SELECT id, name, email, is_active, created_at FROM users ORDER BY created_at DESC
-
-  AdminController::getPendingReports():
-    → AdminDAL::getPendingReports()
-      SELECT r.id, r.reason, r.created_at,
-             reporter.name AS reporter_name, reported.name AS reported_name
-      FROM reports r
-      JOIN users reporter ON r.reporter_id = reporter.id
-      JOIN users reported ON r.reported_id = reported.id
-      WHERE r.status = 'pending'
-      ORDER BY r.created_at ASC
-  ─────────────────────────────────────────────────────────
-*/
 
 $ctrl    = new AdminController();
 $userPage = max(1, (int)($_GET['user_page'] ?? 1));
@@ -116,16 +98,7 @@ include __DIR__ . '/includes/header.php';
               </span>
             </td>
             <td style="color:var(--text-secondary);"><?= htmlspecialchars($u['created_at']) ?></td>
-            <td>
-              <!--
-                DB CONNECTION POINT — Suspend / Reactivate
-                ─────────────────────────────────────────────────────────
-                adminAction('suspend'|'reactivate', userId) below calls:
-                  POST /api/admin.php { action, user_id }
-                AdminController::suspendUser($id)  → UserDAL::setActive($id, 0)
-                AdminController::reactivateUser($id) → UserDAL::setActive($id, 1)
-                ─────────────────────────────────────────────────────────
-              -->
+            <td>             
               <?php if ($u['is_active']): ?>
                 <button class="btn-outline" style="color:#f87171;border-color:rgba(239,68,68,0.3);"
                         onclick="adminAction('suspend', <?= $u['id'] ?>)">
@@ -245,17 +218,6 @@ include __DIR__ . '/includes/header.php';
               </td>
               <td style="color:var(--text-secondary);"><?= htmlspecialchars($r['created_at']) ?></td>
               <td>
-                <!--
-                  DB CONNECTION POINT — Resolve Reports
-                  ─────────────────────────────────────────────────────────
-                  resolveReport(id, resolution) calls:
-                    POST /api/admin.php { action:'resolve_report', report_id, resolution }
-                  AdminController::resolveReport($id, $resolution):
-                    → AdminDAL::updateReportStatus($id, 'actioned'|'dismissed')
-                       UPDATE reports SET status=:status WHERE id=:id
-                    If 'actioned': optionally also suspend the reported user
-                  ─────────────────────────────────────────────────────────
-                -->
                 <button class="btn-primary" style="font-size:12px;padding:7px 12px;"
                         onclick="resolveReport(<?= $r['id'] ?>, 'actioned')">
                   <i class="fas fa-ban"></i> Suspend User
@@ -342,11 +304,6 @@ include __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-  /*
-    DB CONNECTION POINT — adminAction()
-    POST /api/admin.php { action: 'suspend'|'reactivate', user_id }
-    Reloads the page on success.
-  */
   function adminAction(action, userId) {
     if (!confirm(`Are you sure you want to ${action} this user?`)) return;
     fetch('/api/admin.php', {
@@ -360,10 +317,6 @@ include __DIR__ . '/includes/header.php';
       });
   }
 
-  /*
-    DB CONNECTION POINT — resolveReport()
-    POST /api/admin.php { action: 'resolve_report', report_id, resolution }
-  */
   function resolveReport(reportId, resolution) {
     if (!confirm(`Mark this report as "${resolution}"?`)) return;
     fetch('/api/admin.php', {

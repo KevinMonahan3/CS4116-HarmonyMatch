@@ -82,27 +82,6 @@ include __DIR__ . '/includes/header.php';
       </div>
     </div>
 
-    <!--
-      DB CONNECTION POINT — Search Results
-      ─────────────────────────────────────────────────────────
-      #searchResults is populated by assets/js/search.js via:
-        fetch('/api/users.php?action=search&min_age=X&max_age=Y&compat=Z&genre_id=W&q=keyword')
-
-      In /api/users.php (action=search) you should:
-        1. Sanitise & validate query params
-        2. Call UserController::search($params, $currentUserId)
-           → UserDAL::search() runs a parameterised SQL query with:
-              • WHERE u.dob BETWEEN ... AND ...   (age range)
-              • AND compat_score >= :compat        (JOIN-computed or pre-computed)
-              • AND genres LIKE :genre_id          (genre filter)
-              • AND (u.name LIKE :q OR u.location LIKE :q)
-              • ORDER BY compat_score DESC
-              • LIMIT 50
-        3. Return JSON array of user objects (same shape as discover feed)
-
-      search.js renders the results as .match-card elements in #searchResults.
-    ─────────────────────────────────────────────────────────
-    -->
     <div id="searchResults" class="match-grid">
       <p style="color:var(--text-secondary);">Use the filters above or browse all users.</p>
     </div>

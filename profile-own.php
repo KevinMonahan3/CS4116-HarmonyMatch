@@ -11,15 +11,6 @@ AuthController::requireLogin();
 
 $userId = (int)$_SESSION['user_id'];
 
-/*
-  DB CONNECTION POINT — Load Own Profile
-  ─────────────────────────────────────────────────────────
-  UserController::getProfile($userId) should call:
-    UserDAL::getById($userId)           — SELECT user row
-    MusicDAL::getGenresForUser($userId) — SELECT genres
-    MusicDAL::getArtistsForUser($userId)— SELECT artists
-  ─────────────────────────────────────────────────────────
-*/
 
 $ctrl    = new UserController();
 $profile = $ctrl->getProfile($userId) ?: [
@@ -108,17 +99,6 @@ include __DIR__ . '/includes/header.php';
                       placeholder="Tell potential matches a bit about yourself…"><?= htmlspecialchars($profile['bio'] ?? '') ?></textarea>
           </div>
 
-          <!--
-            DB CONNECTION POINT — Save Profile
-            ─────────────────────────────────────────────────────────
-            Wire to /api/users.php?action=update_profile via fetch() in profile.js.
-            UserController::updateProfile($userId, $data):
-              → validates input
-              → UserDAL::update($userId, ['name'=>..., 'location'=>..., 'bio'=>...])
-                 UPDATE users SET name=:name, location=:location, bio=:bio WHERE id=:id
-            Returns JSON { success: true } or { error: '...' }
-            ─────────────────────────────────────────────────────────
-          -->
           <p id="profileMsg" style="display:none;font-size:13.5px;margin-bottom:12px;"></p>
           <button type="submit" class="btn-primary">
             <i class="fas fa-save"></i> Save Changes
@@ -289,22 +269,10 @@ include __DIR__ . '/includes/header.php';
     <div class="hm-card">
       <h3>Account</h3>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <!--
-          DB CONNECTION POINT — Logout
-          GET /api/auth.php?action=logout
-          AuthController::logout() → session_destroy() → redirect to /login.php
-        -->
         <a href="/api/auth.php?action=logout" class="btn-outline">
           <i class="fas fa-sign-out-alt"></i> Sign Out
         </a>
 
-        <!--
-          DB CONNECTION POINT — Delete Account
-          POST /api/users.php { action: 'delete_account' }
-          UserController::deleteAccount($userId):
-            → soft-delete: UserDAL::deactivate($userId)  UPDATE users SET is_active=0
-            → or hard-delete with cascade (adjust to your schema)
-        -->
         <button class="btn-outline" style="color:#f87171;border-color:rgba(239,68,68,0.3);"
                 onclick="if(confirm('Delete your account? This cannot be undone.')) deleteAccount()">
           <i class="fas fa-trash"></i> Delete Account
@@ -815,11 +783,6 @@ include __DIR__ . '/includes/header.php';
   });
 
   function deleteAccount() {
-    /*
-      DB CONNECTION POINT
-      fetch('/api/users.php', { method:'POST', body:'action=delete_account' })
-        → redirect to /login.php on success
-    */
     alert('Delete account API not yet connected.');
   }
 </script>

@@ -64,25 +64,6 @@ include __DIR__ . '/includes/header.php';
     </div>
     </div>
 
-    <!--
-      DB CONNECTION POINT — Match Grid
-      ─────────────────────────────────────────────────────────
-      The <div id="matchGrid"> below is populated by assets/js/dashboard.js
-      via a fetch() call to /api/matches.php?action=discover
-
-      In /api/matches.php you should:
-        1. Verify the session (AuthController::requireLogin())
-        2. Call MatchController::getDiscoverFeed($currentUserId)
-           which in turn calls MatchDAL::getDiscoverFeed() — a SQL query that:
-             • Excludes users the current user has already swiped on
-             • Excludes blocked/suspended users
-             • JOINs on genres/artists to compute a compatibility score
-             • Returns: id, name, profile_photo, location, age, genres[], compat_score
-        3. json_encode() and return the array
-
-      dashboard.js then renders each user as a .match-card element.
-    ─────────────────────────────────────────────────────────
-    -->
     <div class="discover-shell">
       <div class="hm-card discover-status-card">
         <div>

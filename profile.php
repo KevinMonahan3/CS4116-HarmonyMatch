@@ -10,21 +10,6 @@ require_once __DIR__ . '/controllers/UserController.php';
 require_once __DIR__ . '/controllers/MatchController.php';
 AuthController::requireLogin();
 
-/*
-  DB CONNECTION POINT — Load Profile
-  ─────────────────────────────────────────────────────────
-  $viewUserId comes from the URL query param.
-  UserController::getProfile($viewUserId) should call:
-    UserDAL::getById($id)          — SELECT from users WHERE id = :id
-    MusicDAL::getGenresForUser($id) — SELECT genres for this user
-    MusicDAL::getArtistsForUser($id)— SELECT artists for this user
-  Returns an associative array: [id, name, profile_photo, location, bio, genres[], artists[]]
-
-  MatchController::computeCompatibility($myId, $viewUserId) should call:
-    MatchDAL::computeCompatibility() — overlap scoring between the two users' music data
-  Returns an integer 0–100.
-  ─────────────────────────────────────────────────────────
-*/
 $viewUserId = (int)($_GET['id'] ?? 0);
 if (!$viewUserId) { header('Location: /dashboard.php'); exit; }
 
@@ -87,21 +72,6 @@ include __DIR__ . '/includes/header.php';
       </div>
 
       <!-- Action buttons -->
-      <!--
-        DB CONNECTION POINT — Like / Message buttons
-        ─────────────────────────────────────────────────────────
-        Like button calls swipe() below → POST /api/matches.php
-          action=swipe, to_user_id=<id>, action_type=like|pass
-
-        MatchController::recordSwipe($fromId, $toId, $action):
-          → MatchDAL::insertSwipe() — INSERT INTO swipes
-          → MatchDAL::checkMutualLike() — check if $toId already liked $fromId
-          → if mutual: MatchDAL::createMatch() — INSERT INTO matches
-          → return { is_match: bool }
-
-        Message link → /chat.php?with=<viewUserId>
-        ─────────────────────────────────────────────────────────
-      -->
       <div class="profile-actions">
         <button class="btn-outline" style="gap:8px;" onclick="swipe(<?= $viewUserId ?>, 'skip')">
           <i class="fas fa-times"></i> Skip
@@ -180,11 +150,6 @@ include __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-/*
-  DB CONNECTION POINT — swipe()
-  Sends a like/pass action to the API.
-  On a mutual like, shows a match notification then redirects to dashboard.
-*/
 async function swipe(toUserId, action) {
   const res  = await fetch('/api/matches.php', {
     method: 'POST',
@@ -199,11 +164,6 @@ async function swipe(toUserId, action) {
   }
 }
 
-/*
-  DB CONNECTION POINT — reportUser()
-  Should POST to /api/reports.php with { reported_id, reason }.
-  ReportController::create() → ReportDAL::insert()
-*/
 function reportUser(userId) {
   const reason = prompt('Why are you reporting this user?');
   if (!reason) return;

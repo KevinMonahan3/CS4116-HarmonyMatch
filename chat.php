@@ -31,25 +31,6 @@ include __DIR__ . '/includes/header.php';
     <div class="chat-inbox hm-card" id="chatInbox">
       <h3>Messages</h3>
 
-      <!--
-        DB CONNECTION POINT — Inbox List
-        ─────────────────────────────────────────────────────────
-        Populated by chat.js via:
-          fetch('/api/messages.php?action=inbox')
-
-        In /api/messages.php (action=inbox):
-          1. Verify session
-          2. Call MessageController::getInbox($currentUserId)
-             → MessageDAL::getInbox() runs:
-                SELECT conversations with latest message per thread,
-                JOIN users for name + photo,
-                ORDER BY last_message_at DESC
-          3. Return JSON: [{ user_id, name, photo, last_message, unread_count, timestamp }]
-
-        chat.js renders each as an .inbox-item element.
-        Clicking one opens the conversation panel and calls loadConversation(userId).
-        ─────────────────────────────────────────────────────────
-      -->
       <div id="inboxList">
         <p id="inboxEmpty" style="color:var(--text-muted);font-size:13px;padding:12px;display:none;">No conversations yet.</p>
       </div><!-- /#inboxList -->
@@ -58,11 +39,6 @@ include __DIR__ . '/includes/header.php';
     <!-- ── Conversation panel ── -->
     <div class="chat-panel hm-card" id="chatPanel" <?= $withUserId ? '' : 'style="display:none;"' ?>>
 
-      <!--
-        DB CONNECTION POINT — Chat Header
-        Name + photo of the person you're talking to.
-        Populated by chat.js after loadConversation(userId).
-      -->
       <div class="chat-header" id="chatHeader">
         <button class="chat-back-btn" onclick="showInbox()" aria-label="Back to inbox">
           <i class="fas fa-chevron-left"></i>
@@ -70,44 +46,8 @@ include __DIR__ . '/includes/header.php';
         <span style="color:var(--text-muted);">Select a conversation</span>
       </div>
 
-      <!--
-        DB CONNECTION POINT — Message Thread
-        ─────────────────────────────────────────────────────────
-        Populated by chat.js via:
-          fetch('/api/messages.php?action=thread&with=<userId>')
-
-        In /api/messages.php (action=thread):
-          1. Verify session
-          2. Call MessageController::getThread($currentUserId, $withUserId)
-             → MessageDAL::getThread() runs:
-                SELECT id, sender_id, body, sent_at
-                FROM messages
-                WHERE (sender_id = :me AND receiver_id = :them)
-                   OR (sender_id = :them AND receiver_id = :me)
-                ORDER BY sent_at ASC
-          3. Return JSON array of message objects
-          4. Also mark incoming messages as read (MessageDAL::markRead())
-
-        chat.js renders each as a .msg-bubble.sent or .msg-bubble.received element.
-        ─────────────────────────────────────────────────────────
-      -->
       <div class="chat-messages" id="chatMessages"></div>
 
-      <!--
-        DB CONNECTION POINT — Send Message
-        ─────────────────────────────────────────────────────────
-        Form submit handled by chat.js via:
-          fetch('/api/messages.php', { method:'POST', body: `action=send&to=<userId>&body=<text>` })
-
-        In /api/messages.php (action=send):
-          1. Verify session & that $toUserId exists and is not blocked
-          2. Call MessageController::send($fromUserId, $toUserId, $body)
-             → MessageDAL::insert() — INSERT INTO messages (sender_id, receiver_id, body, sent_at)
-          3. Return JSON { success: true, message: { id, body, sent_at } }
-
-        chat.js appends the new bubble immediately (optimistic UI) then confirms with the response.
-        ─────────────────────────────────────────────────────────
-      -->
       <form class="chat-input-row" id="sendForm">
         <input type="text" id="msgInput" class="form-input" placeholder="Type a message…" autocomplete="off" maxlength="1000">
         <button type="submit" class="btn-primary">
